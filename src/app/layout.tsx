@@ -12,7 +12,12 @@ export const metadata: Metadata = {
   title: 'LifeOS — Personal Operating System',
   description: 'Sleek personal command center for tasks, notes, timeline, articles, documents, and secure vault.',
   icons: {
-    icon: '/favicon.ico',
+    icon: [
+      { url: '/favicon.png', type: 'image/png' },
+      { url: '/favicon.ico', sizes: 'any' },
+    ],
+    shortcut: '/favicon.png',
+    apple: '/apple-touch-icon.png',
   },
 };
 

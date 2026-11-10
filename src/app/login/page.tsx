@@ -84,7 +84,7 @@ export default function LoginPage() {
             transition={{ type: 'spring', damping: 15 }}
             className="inline-flex items-center justify-center mb-3"
           >
-            <Icon3D name="shield" size={56} priority />
+            <Icon3D name="logo" size={68} priority />
           </motion.div>
           <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center justify-center gap-1.5">
             Life<span className="text-gradient-primary">OS</span>

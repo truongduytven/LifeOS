@@ -121,8 +121,8 @@ export default function Sidebar({ mobileOpen = false, onCloseMobile, user }: Sid
         {/* Brand Header */}
         <div className="h-16 flex items-center justify-between px-6 border-b border-[#1E5AA8]/15 dark:border-slate-800">
           <Link href="/" className="flex items-center gap-3 group">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-[#1E5AA8] via-[#286EC7] to-[#F58220] flex items-center justify-center text-white shadow-md shadow-[#1E5AA8]/20 transition-transform group-hover:scale-105 shrink-0">
-              <Icon3D name="star" size={24} />
+            <div className="w-9 h-9 flex items-center justify-center shrink-0 transition-transform group-hover:scale-105">
+              <Icon3D name="logo" size={38} priority />
             </div>
             <div>
               <div className="flex items-center gap-1.5">

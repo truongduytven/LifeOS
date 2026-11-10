@@ -111,7 +111,7 @@ export default function DashboardView() {
       >
         <div className="relative z-10 max-w-xl flex-1">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#FAF3E3] dark:bg-[#172A4A] border border-[#1E5AA8]/20 dark:border-slate-700 text-[#1E5AA8] dark:text-sky-300 text-xs font-semibold mb-3">
-            <Icon3D name="rocket" size={18} />
+            <Icon3D name="logo" size={20} />
             <span>Trung tâm chỉ huy trực tuyến</span>
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse ml-1" />
           </div>

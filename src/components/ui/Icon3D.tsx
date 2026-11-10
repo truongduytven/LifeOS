@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { motion } from 'framer-motion';
 
 export type Icon3DName =
+  | 'logo'
   | 'rocket'
   | 'star'
   | 'chart'

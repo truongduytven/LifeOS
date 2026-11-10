@@ -197,13 +197,13 @@ export default function PublicArticlePage({
           <div className="flex items-center gap-3 min-w-0">
             <Link
               href="/login"
-              className={`p-2 rounded-xl border transition-colors flex items-center justify-center whitespace-nowrap shrink-0 ${themeClasses.btn}`}
+              className={`p-1.5 rounded-xl border transition-colors flex items-center justify-center whitespace-nowrap shrink-0 ${themeClasses.btn}`}
               title="Về LifeOS"
             >
               <img
-                src="/icons/3d/bookmark.png"
-                alt="Bookmark"
-                className="w-5 h-5 object-contain hover:scale-110 hover:-rotate-3 transition-transform duration-300 drop-shadow-sm"
+                src="/icons/3d/logo.png"
+                alt="LifeOS"
+                className="w-7 h-7 object-contain hover:scale-110 hover:-rotate-3 transition-transform duration-300 drop-shadow-sm"
               />
             </Link>
             <div className="min-w-0">
