@@ -1028,20 +1028,24 @@ export default function TaskManager() {
                       : 'bg-[#FFFCF7] dark:bg-[#0B1528] border-[#F5E6C8] dark:border-slate-800/80 hover:border-[#1E5AA8]/40 dark:hover:border-blue-500/40 hover:shadow-md'
                   )}
                 >
-                  <div className="flex items-start gap-3.5">
-                    {/* Interactive Checkbox in Sapphire Blue */}
+                  <div className="flex items-start gap-3">
+                    {/* Interactive Checkbox in Sapphire Blue with 44px touch hit area */}
                     <button
                       type="button"
                       onClick={() => handleToggleTaskStatus(task)}
-                      className={cn(
-                        'mt-0.5 w-6 h-6 rounded-lg flex items-center justify-center transition-all flex-shrink-0 border',
-                        isDone
-                          ? 'bg-[#1E5AA8] text-white border-[#1E5AA8] shadow-xs'
-                          : 'border-slate-300 dark:border-slate-600 hover:border-[#F58220] text-transparent hover:text-[#F58220]/40 bg-white dark:bg-[#111F38]'
-                      )}
+                      className="min-w-[44px] min-h-[44px] -ml-2.5 -mt-2.5 flex items-center justify-center shrink-0 cursor-pointer"
                       aria-label={isDone ? 'Đánh dấu chưa hoàn thành' : 'Đánh dấu hoàn thành'}
                     >
-                      <Check className={cn('w-4 h-4 transition-transform stroke-[2.5]', isDone && 'scale-100')} />
+                      <div
+                        className={cn(
+                          'w-6 h-6 rounded-lg flex items-center justify-center transition-all border',
+                          isDone
+                            ? 'bg-[#1E5AA8] text-white border-[#1E5AA8] shadow-xs'
+                            : 'border-slate-300 dark:border-slate-600 hover:border-[#F58220] text-transparent hover:text-[#F58220]/40 bg-white dark:bg-[#111F38]'
+                        )}
+                      >
+                        <Check className={cn('w-4 h-4 transition-transform stroke-[2.5]', isDone && 'scale-100')} />
+                      </div>
                     </button>
 
                     {/* Content */}
@@ -1242,9 +1246,9 @@ export default function TaskManager() {
           </AnimatePresence>
         </div>
       ) : (
-        /* Kanban Board View Mode - with horizontal roll container and per-column vertical roll */
-        <div className="overflow-x-auto custom-scrollbar pb-2">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 min-w-[920px] md:min-w-0">
+        /* Kanban Board View Mode - with horizontal snap scroll on mobile and 3 columns on desktop */
+        <div className="overflow-x-auto custom-scrollbar pb-3 overscroll-contain snap-x touch-pan-x">
+          <div className="flex md:grid md:grid-cols-3 gap-4 min-w-full">
             {(
               [
                 {
@@ -1284,7 +1288,7 @@ export default function TaskManager() {
                   onDragOver={handleDragOver}
                   onDrop={(e) => handleDrop(e, col.key)}
                   className={cn(
-                    'rounded-2xl p-3 sm:p-4 flex flex-col min-h-[460px] min-w-[290px] border shadow-xs',
+                    'rounded-2xl p-3 sm:p-4 flex flex-col min-h-[460px] w-[85vw] sm:w-[320px] md:w-auto shrink-0 snap-start border shadow-xs',
                     col.colBg,
                     col.borderTop
                   )}
@@ -1433,16 +1437,16 @@ export default function TaskManager() {
         </div>
       )}
 
-      {/* Task Create / Edit Native Accessible Modal (<dialog>) with smooth scroll */}
+      {/* Task Create / Edit Native Accessible Modal (<dialog>) with smooth mobile scroll */}
       <dialog
         ref={dialogRef}
         onClose={handleDialogClose}
         onClick={handleDialogBackdropClick}
         aria-labelledby="task-dialog-title"
-        className="backdrop:bg-slate-950/60 backdrop:backdrop-blur-sm bg-transparent p-0 max-w-xl w-full rounded-2xl shadow-2xl border border-[#F5E6C8] dark:border-slate-800 text-slate-800 dark:text-slate-100 overflow-hidden"
+        className="backdrop:bg-slate-950/60 backdrop:backdrop-blur-sm bg-transparent p-0 max-w-lg w-[calc(100%-2rem)] mx-auto rounded-2xl shadow-2xl border border-[#F5E6C8] dark:border-slate-800 text-slate-800 dark:text-slate-100 overflow-hidden my-auto max-h-[90dvh] sm:max-h-[85vh]"
         style={{ overscrollBehavior: 'contain' }}
       >
-        <div className="bg-[#FFFCF7] dark:bg-[#0B1528] p-6 sm:p-7 space-y-5 max-h-[85vh] overflow-y-auto overscroll-contain custom-scrollbar">
+        <div className="bg-[#FFFCF7] dark:bg-[#0B1528] p-5 sm:p-7 space-y-5 max-h-[90dvh] sm:max-h-[85vh] overflow-y-auto overscroll-contain custom-scrollbar">
           {/* Header */}
           <div className="flex items-center justify-between border-b border-[#F5E6C8] dark:border-slate-800 pb-4">
             <h2 id="task-dialog-title" className="text-lg font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">

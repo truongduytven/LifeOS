@@ -114,13 +114,13 @@ export default function Sidebar({ mobileOpen = false, onCloseMobile, user }: Sid
 
       {/* Main Sidebar */}
       <aside
-        className={`fixed top-0 bottom-0 left-0 z-50 w-72 flex flex-col bg-[#FFFCF7]/95 dark:bg-[#111F38]/95 backdrop-blur-xl border-r border-[#1E5AA8]/15 dark:border-slate-800 text-slate-800 dark:text-slate-100 transition-transform duration-300 ease-out lg:translate-x-0 ${
+        className={`fixed top-0 bottom-0 left-0 z-50 w-72 max-w-[85vw] flex flex-col bg-[#FFFCF7]/95 dark:bg-[#111F38]/95 backdrop-blur-xl border-r border-[#1E5AA8]/15 dark:border-slate-800 text-slate-800 dark:text-slate-100 transition-transform duration-300 ease-out lg:translate-x-0 ${
           mobileOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
         {/* Brand Header */}
         <div className="h-16 flex items-center justify-between px-6 border-b border-[#1E5AA8]/15 dark:border-slate-800">
-          <Link href="/" className="flex items-center gap-3 group">
+          <Link href="/" onClick={onCloseMobile} className="flex items-center gap-3 group">
             <div className="w-9 h-9 flex items-center justify-center shrink-0 transition-transform group-hover:scale-105">
               <Icon3D name="logo" size={38} priority />
             </div>
@@ -139,7 +139,7 @@ export default function Sidebar({ mobileOpen = false, onCloseMobile, user }: Sid
           {/* Close button for mobile */}
           <button
             onClick={onCloseMobile}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-[#F5E6C8]/40 dark:hover:bg-slate-800 lg:hidden transition-colors"
+            className="min-h-[44px] min-w-[44px] flex items-center justify-center p-2 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-[#F5E6C8]/40 dark:hover:bg-slate-800 lg:hidden transition-colors"
             aria-label="Đóng thanh điều hướng"
           >
             <X className="w-5 h-5" />
@@ -161,7 +161,7 @@ export default function Sidebar({ mobileOpen = false, onCloseMobile, user }: Sid
                 key={item.href}
                 href={item.href}
                 onClick={onCloseMobile}
-                className={`group flex items-center justify-between px-3 py-2 rounded-xl text-sm font-medium transition-all border ${
+                className={`group flex items-center justify-between px-3 py-2.5 min-h-[44px] rounded-xl text-sm font-medium transition-all border ${
                   isActive
                     ? item.activeClasses
                     : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-[#F5E6C8]/40 dark:hover:bg-slate-800/60 border-transparent'
@@ -227,7 +227,7 @@ export default function Sidebar({ mobileOpen = false, onCloseMobile, user }: Sid
 
             <button
               onClick={handleLogout}
-              className="p-2 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors flex-shrink-0"
+              className="min-h-[44px] min-w-[44px] flex items-center justify-center p-2 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors flex-shrink-0"
               title="Đăng xuất"
               aria-label="Đăng xuất khỏi LifeOS"
             >

@@ -437,7 +437,7 @@ export default function NotesGrid() {
 
       {/* Loading Skeleton */}
       {loading && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {[1, 2, 3, 4, 5, 6].map((idx) => (
             <div key={idx} className="bg-[#FFFCF7] dark:bg-[#111F38] border border-[#F5E6C8] dark:border-slate-800 h-44 rounded-2xl animate-pulse p-5 space-y-3 shadow-xs">
               <div className="h-5 bg-[#F5E6C8]/60 dark:bg-slate-700 rounded-md w-3/4" />
@@ -504,7 +504,7 @@ export default function NotesGrid() {
             />
             <span className="whitespace-nowrap">Đã ghim ({pinnedNotes.length})</span>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <AnimatePresence>
               {pinnedNotes.map((note) => (
                 <NoteCard
@@ -531,7 +531,7 @@ export default function NotesGrid() {
               <span className="whitespace-nowrap">Ghi chú khác ({unpinnedNotes.length})</span>
             </div>
           )}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <AnimatePresence>
               {unpinnedNotes.map((note) => (
                 <NoteCard
@@ -550,16 +550,25 @@ export default function NotesGrid() {
         </div>
       )}
 
+      {/* Mobile Floating Action Button (FAB) */}
+      <button
+        onClick={handleOpenCreate}
+        className="fixed bottom-24 right-4 lg:hidden z-30 w-14 h-14 rounded-full bg-gradient-to-tr from-[#1E5AA8] to-[#F58220] text-white shadow-xl shadow-[#F58220]/30 flex items-center justify-center transition-transform active:scale-95 cursor-pointer"
+        aria-label="Tạo ghi chú mới"
+      >
+        <Plus className="w-6 h-6 stroke-[2.5]" />
+      </button>
+
       {/* Note Editor Modal (Native Accessible Dialog) */}
       <dialog
         ref={dialogRef}
         onClose={handleDialogClose}
         onClick={handleDialogBackdropClick}
         aria-labelledby="note-dialog-title"
-        className="backdrop:bg-slate-950/70 backdrop:backdrop-blur-sm bg-transparent p-0 max-w-2xl w-full rounded-2xl shadow-2xl border border-[#F5E6C8] dark:border-slate-800 text-slate-800 dark:text-slate-100 overflow-hidden"
+        className="backdrop:bg-slate-950/70 backdrop:backdrop-blur-sm bg-transparent p-0 max-w-2xl w-[calc(100%-2rem)] mx-auto rounded-2xl shadow-2xl border border-[#F5E6C8] dark:border-slate-800 text-slate-800 dark:text-slate-100 overflow-hidden my-auto max-h-[90dvh] sm:max-h-[85vh]"
         style={{ overscrollBehavior: 'contain' }}
       >
-        <div className="bg-[#FFFCF7] dark:bg-[#0B1528] p-6 sm:p-7 space-y-5 max-h-[85vh] overflow-y-auto overscroll-contain custom-scrollbar">
+        <div className="bg-[#FFFCF7] dark:bg-[#0B1528] p-5 sm:p-7 space-y-5 max-h-[90dvh] sm:max-h-[85vh] overflow-y-auto overscroll-contain custom-scrollbar">
           {/* Modal Header */}
           <div className="flex items-center justify-between pb-4 border-b border-[#F5E6C8] dark:border-slate-800">
             <h2 id="note-dialog-title" className="text-lg font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">

@@ -191,31 +191,31 @@ export default function PublicArticlePage({
       </div>
 
       {/* Reader Sticky Header */}
-      <header className={`sticky top-0 z-40 px-4 sm:px-8 py-3.5 border-b transition-colors ${themeClasses.header}`}>
-        <div className="max-w-4xl mx-auto flex items-center justify-between gap-4">
+      <header className={`sticky top-0 z-40 px-3 sm:px-8 py-2.5 sm:py-3.5 border-b transition-colors ${themeClasses.header}`}>
+        <div className="max-w-4xl mx-auto flex items-center justify-between gap-2 sm:gap-4">
           {/* Brand & Title */}
-          <div className="flex items-center gap-3 min-w-0">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
             <Link
               href="/login"
-              className={`p-1.5 rounded-xl border transition-colors flex items-center justify-center whitespace-nowrap shrink-0 ${themeClasses.btn}`}
+              className={`p-1.5 min-h-[40px] min-w-[40px] rounded-xl border transition-colors flex items-center justify-center whitespace-nowrap shrink-0 ${themeClasses.btn}`}
               title="Về LifeOS"
             >
               <img
                 src="/icons/3d/logo.png"
                 alt="LifeOS"
-                className="w-7 h-7 object-contain hover:scale-110 hover:-rotate-3 transition-transform duration-300 drop-shadow-sm"
+                className="w-6 h-6 sm:w-7 sm:h-7 object-contain drop-shadow-sm"
               />
             </Link>
             <div className="min-w-0">
-              <span className="text-[11px] font-semibold uppercase tracking-wider text-[#F58220] flex items-center gap-1.5 whitespace-nowrap">
+              <span className="text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider text-[#F58220] flex items-center gap-1 whitespace-nowrap">
                 <img
                   src="/icons/3d/glasses.png"
                   alt="Glasses"
-                  className="w-4 h-4 object-contain inline"
+                  className="w-3.5 h-3.5 sm:w-4 sm:h-4 object-contain inline"
                 />
                 LifeOS Reader
               </span>
-              <h2 className="text-xs sm:text-sm font-semibold truncate leading-tight text-[#1E5AA8] dark:text-slate-100 min-w-0 break-words">
+              <h2 className="text-xs sm:text-sm font-semibold truncate leading-tight text-[#1E5AA8] dark:text-slate-100 max-w-[130px] xs:max-w-[200px] sm:max-w-md">
                 {article.title}
               </h2>
             </div>
@@ -223,8 +223,8 @@ export default function PublicArticlePage({
 
           {/* Reader Controls Toolbar */}
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-            {/* Font Selector */}
-            <div className={`flex items-center border rounded-xl p-0.5 text-xs ${themeClasses.border}`}>
+            {/* Font Selector (Tablet & Desktop) */}
+            <div className={`hidden md:flex items-center border rounded-xl p-0.5 text-xs ${themeClasses.border}`}>
               <button
                 onClick={() => setFont('serif')}
                 className={`px-2 py-1 rounded-lg font-serif transition-colors whitespace-nowrap shrink-0 ${
@@ -252,18 +252,18 @@ export default function PublicArticlePage({
             </div>
 
             {/* Font Size Buttons */}
-            <div className={`hidden sm:flex items-center border rounded-xl p-0.5 text-xs ${themeClasses.border}`}>
+            <div className={`flex items-center border rounded-xl p-0.5 text-xs ${themeClasses.border}`}>
               <button
                 onClick={() => setFontSize((s) => Math.max(15, s - 2))}
-                className="px-2 py-1 hover:opacity-80 font-bold whitespace-nowrap shrink-0"
+                className="px-1.5 sm:px-2 py-1 hover:opacity-80 font-bold whitespace-nowrap shrink-0"
                 title="Giảm cỡ chữ"
               >
                 A-
               </button>
-              <span className="px-1 text-[11px] opacity-70 font-mono">{fontSize}</span>
+              <span className="px-1 text-[10px] sm:text-[11px] opacity-70 font-mono">{fontSize}</span>
               <button
                 onClick={() => setFontSize((s) => Math.min(26, s + 2))}
-                className="px-2 py-1 hover:opacity-80 font-bold whitespace-nowrap shrink-0"
+                className="px-1.5 sm:px-2 py-1 hover:opacity-80 font-bold whitespace-nowrap shrink-0"
                 title="Tăng cỡ chữ"
               >
                 A+

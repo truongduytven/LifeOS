@@ -437,7 +437,7 @@ export default function PersonalVault() {
         <motion.div
           initial={{ opacity: 0, scale: 0.95, y: 15 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
-          className="w-full max-w-md max-h-[88vh] overflow-y-auto overscroll-contain custom-scrollbar rounded-3xl p-8 bg-gradient-to-br from-[#FAF3E3] via-[#FFFCF7] to-[#F5E6C8]/50 dark:from-[#0B1528] dark:via-[#111F38] dark:to-[#0B1528] border border-[#F5E6C8] dark:border-slate-800 shadow-xl shadow-[#1E5AA8]/5 dark:shadow-black/40 relative text-center"
+          className="w-full max-w-md max-h-[90dvh] sm:max-h-[88vh] overflow-y-auto overscroll-contain custom-scrollbar rounded-3xl p-6 sm:p-8 bg-gradient-to-br from-[#FAF3E3] via-[#FFFCF7] to-[#F5E6C8]/50 dark:from-[#0B1528] dark:via-[#111F38] dark:to-[#0B1528] border border-[#F5E6C8] dark:border-slate-800 shadow-xl shadow-[#1E5AA8]/5 dark:shadow-black/40 relative text-center"
         >
           {/* Soft Glow Accent */}
           <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-48 h-48 bg-gradient-to-r from-[#F5E6C8]/60 to-[#FAF3E3]/80 dark:from-[#1E5AA8]/20 dark:to-[#111F38]/40 rounded-full blur-3xl pointer-events-none" />
@@ -497,7 +497,7 @@ export default function PersonalVault() {
                     setPinInput((prev) => prev + digit);
                   }
                 }}
-                className="h-12 rounded-2xl bg-[#FFFCF7] dark:bg-[#111F38] hover:bg-[#FAF3E3] dark:hover:bg-[#162746] border border-[#F5E6C8] dark:border-slate-800 hover:border-[#1E5AA8]/40 dark:hover:border-[#F58220]/40 text-[#1E5AA8] dark:text-slate-100 font-bold text-lg active:scale-95 transition-all flex items-center justify-center shadow-sm hover:shadow whitespace-nowrap shrink-0"
+                className="h-14 sm:h-12 rounded-2xl bg-[#FFFCF7] dark:bg-[#111F38] hover:bg-[#FAF3E3] dark:hover:bg-[#162746] border border-[#F5E6C8] dark:border-slate-800 hover:border-[#1E5AA8]/40 dark:hover:border-[#F58220]/40 text-[#1E5AA8] dark:text-slate-100 font-bold text-lg active:scale-95 transition-all flex items-center justify-center shadow-sm hover:shadow whitespace-nowrap shrink-0"
               >
                 {digit}
               </button>
@@ -505,7 +505,7 @@ export default function PersonalVault() {
             <button
               type="button"
               onClick={() => setPinInput('')}
-              className="h-12 rounded-2xl bg-[#FAF3E3] dark:bg-[#0B1528] hover:bg-[#F5E6C8]/60 dark:hover:bg-[#162746] border border-[#F5E6C8] dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:text-[#F58220] dark:hover:text-[#F58220] text-xs font-semibold active:scale-95 transition-all flex items-center justify-center shadow-sm whitespace-nowrap shrink-0"
+              className="h-14 sm:h-12 rounded-2xl bg-[#FAF3E3] dark:bg-[#0B1528] hover:bg-[#F5E6C8]/60 dark:hover:bg-[#162746] border border-[#F5E6C8] dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:text-[#F58220] dark:hover:text-[#F58220] text-xs font-semibold active:scale-95 transition-all flex items-center justify-center shadow-sm whitespace-nowrap shrink-0"
             >
               Xóa hết
             </button>
@@ -516,14 +516,14 @@ export default function PersonalVault() {
                   setPinInput((prev) => prev + '0');
                 }
               }}
-              className="h-12 rounded-2xl bg-[#FFFCF7] dark:bg-[#111F38] hover:bg-[#FAF3E3] dark:hover:bg-[#162746] border border-[#F5E6C8] dark:border-slate-800 hover:border-[#1E5AA8]/40 dark:hover:border-[#F58220]/40 text-[#1E5AA8] dark:text-slate-100 font-bold text-lg active:scale-95 transition-all flex items-center justify-center shadow-sm hover:shadow whitespace-nowrap shrink-0"
+              className="h-14 sm:h-12 rounded-2xl bg-[#FFFCF7] dark:bg-[#111F38] hover:bg-[#FAF3E3] dark:hover:bg-[#162746] border border-[#F5E6C8] dark:border-slate-800 hover:border-[#1E5AA8]/40 dark:hover:border-[#F58220]/40 text-[#1E5AA8] dark:text-slate-100 font-bold text-lg active:scale-95 transition-all flex items-center justify-center shadow-sm hover:shadow whitespace-nowrap shrink-0"
             >
               0
             </button>
             <button
               type="button"
               onClick={() => setPinInput((prev) => prev.slice(0, -1))}
-              className="h-12 rounded-2xl bg-[#FAF3E3] dark:bg-[#0B1528] hover:bg-[#F5E6C8]/60 dark:hover:bg-[#162746] border border-[#F5E6C8] dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:text-[#F58220] dark:hover:text-[#F58220] text-xs font-semibold active:scale-95 transition-all flex items-center justify-center shadow-sm whitespace-nowrap shrink-0"
+              className="h-14 sm:h-12 rounded-2xl bg-[#FAF3E3] dark:bg-[#0B1528] hover:bg-[#F5E6C8]/60 dark:hover:bg-[#162746] border border-[#F5E6C8] dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:text-[#F58220] dark:hover:text-[#F58220] text-xs font-semibold active:scale-95 transition-all flex items-center justify-center shadow-sm whitespace-nowrap shrink-0"
             >
               Xóa ký tự
             </button>
@@ -840,7 +840,7 @@ export default function PersonalVault() {
               initial={{ opacity: 0, scale: 0.95, y: 15 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 15 }}
-              className="bg-[#FFFCF7] dark:bg-[#111F38] w-full max-w-2xl rounded-2xl p-6 shadow-2xl relative border border-[#F5E6C8] dark:border-slate-800 overflow-hidden flex flex-col max-h-[88vh] overflow-y-auto overscroll-contain custom-scrollbar"
+              className="bg-[#FFFCF7] dark:bg-[#111F38] w-full max-w-2xl rounded-2xl p-5 sm:p-6 shadow-2xl relative border border-[#F5E6C8] dark:border-slate-800 overflow-hidden flex flex-col max-h-[90dvh] sm:max-h-[88vh] overflow-y-auto overscroll-contain custom-scrollbar"
             >
               <div className="flex items-center justify-between pb-4 border-b border-[#F5E6C8]/60 dark:border-slate-800">
                 <h2 className="text-lg font-bold text-[#1E5AA8] dark:text-slate-100 flex items-center gap-2">

@@ -4,6 +4,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Sidebar from '@/components/layout/Sidebar';
 import Header from '@/components/layout/Header';
+import BottomNav from '@/components/layout/BottomNav';
 import type { User } from '@/types/lifeos';
 
 interface LifeOSContextType {
@@ -138,10 +139,13 @@ export default function DashboardLayout({
             user={user}
           />
 
-          {/* Main View Area */}
-          <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full">
+          {/* Main View Area with Mobile Safe Bottom Padding */}
+          <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full pb-24 lg:pb-8">
             {children}
           </main>
+
+          {/* Mobile Bottom Navigation Bar */}
+          <BottomNav onOpenMore={() => setMobileOpen(true)} />
         </div>
       </div>
     </LifeOSContext.Provider>

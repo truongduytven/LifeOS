@@ -618,12 +618,12 @@ export default function TimelineView() {
 
       {/* Control Bar: Filters, Merge Toggle, Search */}
       <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
-        {/* Category Pills: Smooth Horizontal Roll */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1.5 text-xs custom-scrollbar">
+        {/* Category Pills: Smooth Horizontal Touch Roll */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-2 text-xs custom-scrollbar overscroll-contain snap-x touch-pan-x w-full">
           <button
             onClick={() => setSelectedCategory('all')}
             className={cn(
-              'px-3 py-1.5 rounded-xl text-xs font-medium transition-all whitespace-nowrap shrink-0',
+              'px-3 py-1.5 min-h-[36px] rounded-xl text-xs font-medium transition-all whitespace-nowrap shrink-0 snap-start',
               selectedCategory === 'all'
                 ? 'bg-[#1E5AA8] text-white border border-[#1E5AA8] shadow-xs font-bold'
                 : 'bg-[#FFFCF7] text-slate-600 hover:bg-[#FAF3E3] border border-[#F5E6C8] dark:bg-[#111F38] dark:text-slate-300 dark:hover:bg-[#152544] dark:border-slate-800'
@@ -639,7 +639,7 @@ export default function TimelineView() {
                 key={key}
                 onClick={() => setSelectedCategory(isSelected ? 'all' : key)}
                 className={cn(
-                  'px-3 py-1.5 rounded-xl text-xs font-medium transition-all whitespace-nowrap shrink-0 flex items-center gap-1.5 border',
+                  'px-3 py-1.5 min-h-[36px] rounded-xl text-xs font-medium transition-all whitespace-nowrap shrink-0 snap-start flex items-center gap-1.5 border',
                   isSelected
                     ? config.badgeActive
                     : 'bg-[#FFFCF7] text-slate-600 hover:bg-[#FAF3E3] border-[#F5E6C8] dark:bg-[#111F38] dark:text-slate-300 dark:hover:bg-[#152544] dark:border-slate-800 shadow-2xs'
@@ -797,19 +797,11 @@ export default function TimelineView() {
                         transition={{ duration: 0.25, delay: itemIdx * 0.04 }}
                         className="relative group"
                       >
-                        {/* Timeline Node on Spine */}
+                        {/* Timeline Node on Spine with 44px touch hit area */}
                         <button
                           type="button"
                           onClick={() => handleToggleItem(item)}
-                          className={cn(
-                            'absolute -left-[23px] sm:-left-[27px] top-4 w-6 h-6 rounded-full flex items-center justify-center transition-all z-10 border-2 shadow-md shrink-0',
-                            item.completed
-                              ? 'bg-[#1E5AA8] text-white border-[#F5E6C8] dark:border-slate-700 shadow-[#1E5AA8]/30 scale-105'
-                              : 'bg-[#FFFCF7] dark:bg-[#0B1528] text-transparent border-[#F58220] hover:scale-110'
-                          )}
-                          style={{
-                            borderColor: item.completed ? '#1E5AA8' : item.color,
-                          }}
+                          className="absolute -left-[33px] sm:-left-[37px] top-2 min-w-[44px] min-h-[44px] flex items-center justify-center z-10 cursor-pointer"
                           title={
                             item.completed
                               ? 'Đánh dấu chưa hoàn thành'
@@ -817,7 +809,19 @@ export default function TimelineView() {
                           }
                           aria-label={item.completed ? 'Hoàn thành' : 'Chưa hoàn thành'}
                         >
-                          <Check className="w-3.5 h-3.5 stroke-[3]" />
+                          <div
+                            className={cn(
+                              'w-6 h-6 rounded-full flex items-center justify-center transition-all border-2 shadow-md shrink-0',
+                              item.completed
+                                ? 'bg-[#1E5AA8] text-white border-[#F5E6C8] dark:border-slate-700 shadow-[#1E5AA8]/30 scale-105'
+                                : 'bg-[#FFFCF7] dark:bg-[#0B1528] text-transparent border-[#F58220] hover:scale-110'
+                            )}
+                            style={{
+                              borderColor: item.completed ? '#1E5AA8' : item.color,
+                            }}
+                          >
+                            <Check className="w-3.5 h-3.5 stroke-[3]" />
+                          </div>
                         </button>
 
                         {/* Card Content: Vanilla Cream / Dark Surface with Category Color Accent */}
@@ -988,10 +992,10 @@ export default function TimelineView() {
         onClose={handleDialogClose}
         onClick={handleDialogBackdropClick}
         aria-labelledby="timeline-dialog-title"
-        className="backdrop:bg-slate-950/70 backdrop:backdrop-blur-sm bg-transparent p-0 max-w-lg w-full rounded-2xl shadow-2xl border border-[#F5E6C8] dark:border-slate-800 text-slate-800 dark:text-slate-100 overflow-hidden"
+        className="backdrop:bg-slate-950/70 backdrop:backdrop-blur-sm bg-transparent p-0 max-w-lg w-[calc(100%-2rem)] mx-auto rounded-2xl shadow-2xl border border-[#F5E6C8] dark:border-slate-800 text-slate-800 dark:text-slate-100 overflow-hidden my-auto max-h-[90dvh] sm:max-h-[85vh]"
         style={{ overscrollBehavior: 'contain' }}
       >
-        <div className="bg-[#FFFCF7] dark:bg-[#0B1528] p-6 sm:p-7 space-y-5 max-h-[85vh] overflow-y-auto overscroll-contain custom-scrollbar">
+        <div className="bg-[#FFFCF7] dark:bg-[#0B1528] p-5 sm:p-7 space-y-5 max-h-[90dvh] sm:max-h-[85vh] overflow-y-auto overscroll-contain custom-scrollbar">
           {/* Modal Header */}
           <div className="flex items-center justify-between border-b border-[#F5E6C8] dark:border-slate-800 pb-4">
             <h2 id="timeline-dialog-title" className="text-lg font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">

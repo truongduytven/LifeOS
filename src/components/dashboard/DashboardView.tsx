@@ -127,11 +127,11 @@ export default function DashboardView() {
             <span>Không gian cá nhân hóa & Bảo mật</span>
           </p>
 
-          {/* Quick Launch Action Shortcuts */}
-          <div className="flex items-center gap-2 sm:gap-3 pt-1 overflow-x-auto custom-scrollbar pb-1">
+          {/* Quick Launch Action Shortcuts with Smooth Touch Snapping */}
+          <div className="flex items-center gap-2 sm:gap-3 pt-1 overflow-x-auto custom-scrollbar pb-2 overscroll-contain snap-x touch-pan-x w-full">
             <Link
               href="/tasks"
-              className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-[#1E5AA8] text-white font-semibold text-xs hover:bg-[#164584] shadow-sm shadow-[#1E5AA8]/25 transition-all cursor-pointer whitespace-nowrap shrink-0"
+              className="inline-flex items-center gap-2 px-3.5 py-2 min-h-[40px] rounded-xl bg-[#1E5AA8] text-white font-semibold text-xs hover:bg-[#164584] shadow-sm shadow-[#1E5AA8]/25 transition-all cursor-pointer whitespace-nowrap shrink-0 snap-start"
             >
               <Plus className="w-3.5 h-3.5 shrink-0" />
               <span>Thêm Task</span>
@@ -139,7 +139,7 @@ export default function DashboardView() {
 
             <Link
               href="/notes"
-              className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-[#F5E6C8]/40 hover:bg-[#F5E6C8]/70 dark:bg-[#172A4A] dark:hover:bg-[#1E5AA8]/30 text-slate-800 dark:text-slate-200 border border-[#1E5AA8]/15 dark:border-slate-700 font-medium text-xs transition-all cursor-pointer whitespace-nowrap shrink-0"
+              className="inline-flex items-center gap-2 px-3.5 py-2 min-h-[40px] rounded-xl bg-[#F5E6C8]/40 hover:bg-[#F5E6C8]/70 dark:bg-[#172A4A] dark:hover:bg-[#1E5AA8]/30 text-slate-800 dark:text-slate-200 border border-[#1E5AA8]/15 dark:border-slate-700 font-medium text-xs transition-all cursor-pointer whitespace-nowrap shrink-0 snap-start"
             >
               <Icon3D name="notebook" size={16} />
               <span>Ghi chú nhanh</span>
@@ -147,7 +147,7 @@ export default function DashboardView() {
 
             <Link
               href="/articles"
-              className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-[#F5E6C8]/40 hover:bg-[#F5E6C8]/70 dark:bg-[#172A4A] dark:hover:bg-[#1E5AA8]/30 text-slate-800 dark:text-slate-200 border border-[#1E5AA8]/15 dark:border-slate-700 font-medium text-xs transition-all cursor-pointer whitespace-nowrap shrink-0"
+              className="inline-flex items-center gap-2 px-3.5 py-2 min-h-[40px] rounded-xl bg-[#F5E6C8]/40 hover:bg-[#F5E6C8]/70 dark:bg-[#172A4A] dark:hover:bg-[#1E5AA8]/30 text-slate-800 dark:text-slate-200 border border-[#1E5AA8]/15 dark:border-slate-700 font-medium text-xs transition-all cursor-pointer whitespace-nowrap shrink-0 snap-start"
             >
               <Icon3D name="bookmark" size={16} />
               <span>Đọc bài viết</span>
@@ -155,7 +155,7 @@ export default function DashboardView() {
 
             <Link
               href="/vault"
-              className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-[#F58220]/15 hover:bg-[#F58220]/25 dark:bg-[#F58220]/20 dark:hover:bg-[#F58220]/30 text-[#BA5409] dark:text-orange-300 border border-[#F58220]/30 dark:border-orange-800/40 font-medium text-xs transition-all cursor-pointer whitespace-nowrap shrink-0"
+              className="inline-flex items-center gap-2 px-3.5 py-2 min-h-[40px] rounded-xl bg-[#F58220]/15 hover:bg-[#F58220]/25 dark:bg-[#F58220]/20 dark:hover:bg-[#F58220]/30 text-[#BA5409] dark:text-orange-300 border border-[#F58220]/30 dark:border-orange-800/40 font-medium text-xs transition-all cursor-pointer whitespace-nowrap shrink-0 snap-start"
             >
               <Icon3D name="lock" size={16} />
               <span>Mở Vault</span>
@@ -163,19 +163,19 @@ export default function DashboardView() {
           </div>
         </div>
 
-        {/* Compact 3D Showcase Orb Box (Focal element, not full background) */}
-        <div className="relative w-44 h-44 sm:w-52 sm:h-52 rounded-2xl bg-gradient-to-tr from-[#FAF3E3] via-[#F5E6C8]/60 to-[#F58220]/20 dark:from-[#172A4A] dark:via-[#111F38] dark:to-[#0B1528] border border-[#1E5AA8]/20 dark:border-slate-700/60 shadow-inner flex items-center justify-center shrink-0 overflow-hidden">
+        {/* Compact 3D Showcase Orb Box (Scaled smoothly for mobile) */}
+        <div className="relative w-28 h-28 sm:w-36 sm:h-36 md:w-48 md:h-48 rounded-2xl bg-gradient-to-tr from-[#FAF3E3] via-[#F5E6C8]/60 to-[#F58220]/20 dark:from-[#172A4A] dark:via-[#111F38] dark:to-[#0B1528] border border-[#1E5AA8]/20 dark:border-slate-700/60 shadow-inner flex items-center justify-center shrink-0 overflow-hidden">
           {threeDEnabled ? (
             <div className="w-full h-full">
               <LifeOSCoreScene variant="dashboard" interactive={true} />
             </div>
           ) : (
-            <div className="flex flex-col items-center justify-center text-center p-4">
-              <Icon3D name="rocket" size={54} float />
-              <span className="text-xs font-semibold text-slate-500 mt-2">LifeOS 3D Core</span>
+            <div className="flex flex-col items-center justify-center text-center p-3">
+              <Icon3D name="rocket" size={40} float />
+              <span className="text-[10px] sm:text-xs font-semibold text-slate-500 mt-1">LifeOS 3D Core</span>
             </div>
           )}
-          <div className="absolute bottom-2 right-2.5 px-2 py-0.5 rounded-full bg-white/80 dark:bg-[#111F38]/90 backdrop-blur-sm border border-slate-200/60 dark:border-slate-700 text-[10px] font-semibold text-[#1E5AA8] dark:text-sky-300 pointer-events-none flex items-center gap-1">
+          <div className="absolute bottom-1.5 right-1.5 sm:bottom-2 sm:right-2.5 px-2 py-0.5 rounded-full bg-white/80 dark:bg-[#111F38]/90 backdrop-blur-sm border border-slate-200/60 dark:border-slate-700 text-[9px] sm:text-[10px] font-semibold text-[#1E5AA8] dark:text-sky-300 pointer-events-none flex items-center gap-1">
             <Sparkles className="w-2.5 h-2.5" />
             <span>3D Core</span>
           </div>
@@ -199,12 +199,12 @@ export default function DashboardView() {
       )}
 
       {/* 2. KPI Metrics Grid (Harmonious Multi-Color Bento Layout with 3D Color Icons) */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
         {/* Metric 1: Tasks (Emerald) */}
-        <div className="p-4 rounded-2xl bg-[#FFFCF7] dark:bg-[#111F38] border border-emerald-200/80 dark:border-emerald-900/40 shadow-xs flex flex-col justify-between hover:shadow-md transition-shadow">
+        <div className="p-3.5 sm:p-4 rounded-2xl bg-[#FFFCF7] dark:bg-[#111F38] border border-emerald-200/80 dark:border-emerald-900/40 shadow-xs flex flex-col justify-between hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 whitespace-nowrap">Công việc</span>
-            <Icon3D name="tick" size={28} />
+            <Icon3D name="tick" size={26} />
           </div>
           <div>
             <div className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">
@@ -217,10 +217,10 @@ export default function DashboardView() {
         </div>
 
         {/* Metric 2: Notes (Sunset Orange) */}
-        <div className="p-4 rounded-2xl bg-[#FFFCF7] dark:bg-[#111F38] border border-[#F58220]/25 dark:border-sunset-900/40 shadow-xs flex flex-col justify-between hover:shadow-md transition-shadow">
+        <div className="p-3.5 sm:p-4 rounded-2xl bg-[#FFFCF7] dark:bg-[#111F38] border border-[#F58220]/25 dark:border-sunset-900/40 shadow-xs flex flex-col justify-between hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 whitespace-nowrap">Ghi chú</span>
-            <Icon3D name="notebook" size={28} />
+            <Icon3D name="notebook" size={26} />
           </div>
           <div>
             <div className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">
@@ -233,10 +233,10 @@ export default function DashboardView() {
         </div>
 
         {/* Metric 3: Articles (Sapphire Blue) */}
-        <div className="p-4 rounded-2xl bg-[#FFFCF7] dark:bg-[#111F38] border border-[#1E5AA8]/25 dark:border-sapphire-900/40 shadow-xs flex flex-col justify-between hover:shadow-md transition-shadow">
+        <div className="p-3.5 sm:p-4 rounded-2xl bg-[#FFFCF7] dark:bg-[#111F38] border border-[#1E5AA8]/25 dark:border-sapphire-900/40 shadow-xs flex flex-col justify-between hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 whitespace-nowrap">Bài viết</span>
-            <Icon3D name="bookmark" size={28} />
+            <Icon3D name="bookmark" size={26} />
           </div>
           <div>
             <div className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">
@@ -249,10 +249,10 @@ export default function DashboardView() {
         </div>
 
         {/* Metric 4: Documents (Sapphire Navy) */}
-        <div className="p-4 rounded-2xl bg-[#FFFCF7] dark:bg-[#111F38] border border-[#1E5AA8]/20 dark:border-sapphire-900/40 shadow-xs flex flex-col justify-between hover:shadow-md transition-shadow">
+        <div className="p-3.5 sm:p-4 rounded-2xl bg-[#FFFCF7] dark:bg-[#111F38] border border-[#1E5AA8]/20 dark:border-sapphire-900/40 shadow-xs flex flex-col justify-between hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 whitespace-nowrap">Tài liệu</span>
-            <Icon3D name="folder" size={28} />
+            <Icon3D name="folder" size={26} />
           </div>
           <div>
             <div className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">
@@ -265,10 +265,10 @@ export default function DashboardView() {
         </div>
 
         {/* Metric 5: Timeline (Sunset Orange) */}
-        <div className="p-4 rounded-2xl bg-[#FFFCF7] dark:bg-[#111F38] border border-[#F58220]/20 dark:border-sunset-900/40 shadow-xs flex flex-col justify-between hover:shadow-md transition-shadow">
+        <div className="p-3.5 sm:p-4 rounded-2xl bg-[#FFFCF7] dark:bg-[#111F38] border border-[#F58220]/20 dark:border-sunset-900/40 shadow-xs flex flex-col justify-between hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 whitespace-nowrap">Cột mốc</span>
-            <Icon3D name="clock" size={28} />
+            <Icon3D name="clock" size={26} />
           </div>
           <div>
             <div className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">
@@ -281,10 +281,10 @@ export default function DashboardView() {
         </div>
 
         {/* Metric 6: Vault (Sunset Glow) */}
-        <div className="p-4 rounded-2xl bg-[#FFFCF7] dark:bg-[#111F38] border border-[#F58220]/30 dark:border-sunset-900/40 shadow-xs flex flex-col justify-between hover:shadow-md transition-shadow">
+        <div className="p-3.5 sm:p-4 rounded-2xl bg-[#FFFCF7] dark:bg-[#111F38] border border-[#F58220]/30 dark:border-sunset-900/40 shadow-xs flex flex-col justify-between hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 whitespace-nowrap">Kho Vault</span>
-            <Icon3D name="lock" size={28} />
+            <Icon3D name="lock" size={26} />
           </div>
           <div>
             <div className="text-xl sm:text-2xl font-bold text-[#E06D0B] dark:text-orange-400">
@@ -386,7 +386,7 @@ export default function DashboardView() {
                           type="button"
                           onClick={() => handleToggleTask(task)}
                           disabled={isBusy}
-                          className="shrink-0 text-slate-400 hover:text-[#1E5AA8] dark:hover:text-sky-400 transition-colors cursor-pointer"
+                          className="min-h-[44px] min-w-[44px] flex items-center justify-center -ml-2 shrink-0 text-slate-400 hover:text-[#1E5AA8] dark:hover:text-sky-400 transition-colors cursor-pointer"
                           aria-label={isDone ? 'Đánh dấu chưa xong' : 'Đánh dấu hoàn thành'}
                         >
                           {isBusy ? (

@@ -69,19 +69,28 @@ export default function Header({
     <>
       <header className="sticky top-0 z-30 h-16 w-full bg-[#FFFCF7]/95 dark:bg-[#111F38]/95 backdrop-blur-xl border-b border-[#1E5AA8]/15 dark:border-slate-800 px-4 sm:px-6 flex items-center justify-between transition-colors">
         {/* Left: Mobile hamburger menu & Quick Search Trigger */}
-        <div className="flex items-center gap-3 min-w-0">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
           <button
             onClick={onOpenMobile}
-            className="p-2 rounded-xl text-slate-500 hover:text-slate-900 hover:bg-[#F5E6C8]/40 dark:text-slate-400 dark:hover:text-white dark:hover:bg-[#172A4A] lg:hidden transition-colors shrink-0"
+            className="min-h-[44px] min-w-[44px] flex items-center justify-center p-2 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-[#F5E6C8]/40 dark:text-slate-300 dark:hover:text-white dark:hover:bg-[#172A4A] lg:hidden transition-colors shrink-0"
             aria-label="Mở bảng điều hướng"
           >
             <Menu className="w-5 h-5" />
           </button>
 
-          {/* Quick Search Button */}
+          {/* Mobile Quick Search Icon Button (<640px) */}
           <button
             onClick={() => setSearchOpen(true)}
-            className="hidden sm:flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-[#F5E6C8]/30 dark:bg-[#172A4A] border border-[#1E5AA8]/15 dark:border-slate-700/80 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white text-xs w-60 lg:w-72 justify-between cursor-pointer group transition-all shrink-0"
+            className="sm:hidden min-h-[44px] min-w-[44px] flex items-center justify-center p-2 rounded-xl bg-[#F5E6C8]/30 dark:bg-[#172A4A] border border-[#1E5AA8]/15 dark:border-slate-700/80 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors shrink-0"
+            aria-label="Tìm kiếm nhanh"
+          >
+            <Search className="w-4 h-4 text-[#1E5AA8] dark:text-blue-400" />
+          </button>
+
+          {/* Quick Search Button (>=640px) */}
+          <button
+            onClick={() => setSearchOpen(true)}
+            className="hidden sm:flex items-center gap-2 px-3.5 py-1.5 min-h-[40px] rounded-xl bg-[#F5E6C8]/30 dark:bg-[#172A4A] border border-[#1E5AA8]/15 dark:border-slate-700/80 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white text-xs w-60 lg:w-72 justify-between cursor-pointer group transition-all shrink-0"
           >
             <div className="flex items-center gap-2 min-w-0">
               <Search className="w-3.5 h-3.5 text-[#1E5AA8] dark:text-blue-400 transition-colors shrink-0" />
@@ -98,7 +107,7 @@ export default function Header({
           {/* 3D Focal Widget Toggle */}
           <button
             onClick={onToggleThreeD}
-            className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-semibold transition-all border whitespace-nowrap shrink-0 ${
+            className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 min-h-[40px] rounded-xl text-xs font-semibold transition-all border whitespace-nowrap shrink-0 ${
               threeDEnabled
                 ? 'bg-sapphire-50 text-sapphire-700 border-sapphire-200 dark:bg-sapphire-950/60 dark:text-blue-300 dark:border-blue-800'
                 : 'bg-slate-100 text-slate-500 border-slate-200 dark:bg-[#172A4A] dark:text-slate-400 dark:border-slate-700'
@@ -113,7 +122,7 @@ export default function Header({
           {/* Dark / Light Mode Toggle */}
           <button
             onClick={onToggleTheme}
-            className="p-2 rounded-xl text-slate-500 hover:text-slate-800 dark:text-slate-300 dark:hover:text-white bg-[#F5E6C8]/40 dark:bg-[#172A4A] border border-[#1E5AA8]/15 dark:border-slate-700/80 transition-colors shrink-0"
+            className="min-h-[40px] min-w-[40px] flex items-center justify-center p-2 rounded-xl text-slate-600 hover:text-slate-800 dark:text-slate-300 dark:hover:text-white bg-[#F5E6C8]/40 dark:bg-[#172A4A] border border-[#1E5AA8]/15 dark:border-slate-700/80 transition-colors shrink-0"
             title={isDark ? 'Chuyển sang chế độ Sáng' : 'Chuyển sang chế độ Tối'}
             aria-label="Chuyển đổi giao diện sáng tối"
           >

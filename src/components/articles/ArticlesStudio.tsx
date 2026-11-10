@@ -640,15 +640,16 @@ export default function ArticlesStudio() {
               />
             </div>
 
-            {/* Reader Floating Header Bar */}
+            {/* Reader Floating Header Bar (Optimized for Mobile Screens down to 320px) */}
             <header
-              className={`px-6 py-3.5 border-b flex items-center justify-between gap-4 backdrop-blur-md transition-colors ${readerThemeStyles.header}`}
+              className={`px-3 sm:px-6 py-2.5 sm:py-3.5 border-b flex items-center justify-between gap-2 sm:gap-4 backdrop-blur-md transition-colors ${readerThemeStyles.header}`}
             >
-              <div className="flex items-center gap-3 min-w-0">
+              <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
                 <button
                   onClick={() => setReadingArticle(null)}
-                  className={`p-2 rounded-xl border transition-colors ${readerThemeStyles.btn}`}
+                  className={`p-2 min-h-[40px] min-w-[40px] flex items-center justify-center rounded-xl border transition-colors shrink-0 ${readerThemeStyles.btn}`}
                   title="Quay lại danh sách"
+                  aria-label="Quay lại danh sách"
                 >
                   <ChevronLeft className="w-4 h-4" />
                 </button>
@@ -656,13 +657,13 @@ export default function ArticlesStudio() {
                   <img
                     src="/icons/3d/glasses.png"
                     alt="Reader"
-                    className="w-6 h-6 object-contain hover:scale-110 hover:-rotate-3 transition-transform duration-300 drop-shadow-sm hidden sm:inline"
+                    className="w-5 h-5 sm:w-6 sm:h-6 object-contain drop-shadow-sm hidden xs:inline shrink-0"
                   />
-                  <div>
-                    <span className={`text-[11px] font-semibold uppercase tracking-wider block leading-tight ${readerThemeStyles.accent}`}>
-                      Chế độ Đọc Tập trung
+                  <div className="min-w-0">
+                    <span className={`text-[10px] font-semibold uppercase tracking-wider block leading-tight truncate ${readerThemeStyles.accent}`}>
+                      Chế độ Đọc
                     </span>
-                    <h3 className="font-bold text-sm truncate max-w-sm sm:max-w-md leading-tight">
+                    <h3 className="font-bold text-xs sm:text-sm truncate max-w-[110px] xs:max-w-[160px] sm:max-w-md leading-tight">
                       {readingArticle.title}
                     </h3>
                   </div>
@@ -670,9 +671,9 @@ export default function ArticlesStudio() {
               </div>
 
               {/* Reader Controls Toolbar */}
-              <div className="flex items-center gap-2">
-                {/* Font Selector */}
-                <div className="hidden sm:flex items-center border rounded-xl p-0.5 text-xs border-current/20">
+              <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+                {/* Font Selector (Tablet & Desktop) */}
+                <div className="hidden md:flex items-center border rounded-xl p-0.5 text-xs border-current/20">
                   <button
                     onClick={() => setReaderFont('serif')}
                     className={`px-2 py-1 rounded-lg font-serif transition-colors ${
@@ -703,59 +704,61 @@ export default function ArticlesStudio() {
                 <div className="flex items-center border rounded-xl p-0.5 text-xs border-current/20">
                   <button
                     onClick={() => setReaderFontSize((s) => Math.max(14, s - 2))}
-                    className="px-2 py-1 hover:opacity-80 font-bold"
+                    className="px-1.5 sm:px-2 py-1 hover:opacity-80 font-bold"
                     title="Giảm kích thước chữ"
                   >
                     A-
                   </button>
-                  <span className="px-1 text-[11px] font-mono opacity-80">{readerFontSize}</span>
+                  <span className="px-1 text-[10px] sm:text-[11px] font-mono opacity-80">{readerFontSize}</span>
                   <button
                     onClick={() => setReaderFontSize((s) => Math.min(26, s + 2))}
-                    className="px-2 py-1 hover:opacity-80 font-bold"
+                    className="px-1.5 sm:px-2 py-1 hover:opacity-80 font-bold"
                     title="Tăng kích thước chữ"
                   >
                     A+
                   </button>
                 </div>
 
-                {/* Theme Selector (Default: Paper Vanilla Cream, also supports Sepia & OLED) */}
+                {/* Theme Selector (Paper Vanilla Cream, Sepia, OLED) */}
                 <div className="flex items-center border rounded-xl p-0.5 text-xs border-current/20">
                   <button
                     onClick={() => setReaderTheme('paper')}
-                    className={`px-2 py-1 rounded-lg flex items-center gap-1 transition-colors ${
+                    className={`p-1.5 sm:px-2 sm:py-1 rounded-lg flex items-center gap-1 transition-colors ${
                       readerTheme === 'paper' ? 'bg-[#1E5AA8] text-white' : 'hover:opacity-80'
                     }`}
-                    title="Vanilla Cream Paper Theme (Mặc định)"
+                    title="Vanilla Cream Paper"
                   >
                     <Sun className="w-3.5 h-3.5" />
                     <span className="hidden md:inline">Paper</span>
                   </button>
                   <button
                     onClick={() => setReaderTheme('sepia')}
-                    className={`px-2 py-1 rounded-lg flex items-center gap-1 transition-colors ${
+                    className={`p-1.5 sm:px-2 sm:py-1 rounded-lg flex items-center gap-1 transition-colors ${
                       readerTheme === 'sepia' ? 'bg-[#92400e] text-white' : 'hover:opacity-80'
                     }`}
-                    title="Warm Sepia Theme"
+                    title="Warm Sepia"
                   >
                     <span className="w-2.5 h-2.5 rounded-full bg-[#dfc092] border border-[#a27845]" />
                     <span className="hidden md:inline">Sepia</span>
                   </button>
                   <button
                     onClick={() => setReaderTheme('oled')}
-                    className={`px-2 py-1 rounded-lg flex items-center gap-1 transition-colors ${
+                    className={`p-1.5 sm:px-2 sm:py-1 rounded-lg flex items-center gap-1 transition-colors ${
                       readerTheme === 'oled' ? 'bg-zinc-800 text-white' : 'hover:opacity-80'
                     }`}
-                    title="Dark OLED Theme"
+                    title="Dark OLED"
                   >
                     <Moon className="w-3.5 h-3.5" />
                     <span className="hidden md:inline">OLED</span>
                   </button>
                 </div>
 
-                {/* Close Button */}
+                {/* Close Button (Hidden on small mobile since back button is present) */}
                 <button
                   onClick={() => setReadingArticle(null)}
-                  className={`p-2 rounded-xl border transition-colors ${readerThemeStyles.btn}`}
+                  className={`hidden sm:flex p-2 rounded-xl border transition-colors ${readerThemeStyles.btn}`}
+                  title="Đóng chế độ đọc"
+                  aria-label="Đóng"
                 >
                   <X className="w-4 h-4" />
                 </button>

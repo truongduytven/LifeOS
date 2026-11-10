@@ -74,7 +74,7 @@ export default function LoginPage() {
         initial={{ opacity: 0, y: 20, scale: 0.98 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-        className="relative z-10 w-full max-w-md rounded-3xl bg-[#FFFCF7]/95 dark:bg-[#111F38]/95 backdrop-blur-2xl p-8 sm:p-10 shadow-[0_20px_60px_-15px_rgba(30,90,168,0.1)] dark:shadow-[0_20px_60px_-15px_rgba(0,0,0,0.6)] border border-[#1E5AA8]/15 dark:border-slate-800"
+        className="relative z-10 w-full max-w-md rounded-3xl bg-[#FFFCF7]/95 dark:bg-[#111F38]/95 backdrop-blur-2xl p-6 sm:p-10 shadow-[0_20px_60px_-15px_rgba(30,90,168,0.1)] dark:shadow-[0_20px_60px_-15px_rgba(0,0,0,0.6)] border border-[#1E5AA8]/15 dark:border-slate-800"
       >
         {/* Brand Header */}
         <div className="text-center mb-8">
