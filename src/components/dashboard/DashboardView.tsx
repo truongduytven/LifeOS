@@ -107,9 +107,9 @@ export default function DashboardView() {
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="relative overflow-hidden rounded-3xl bg-[#FFFCF7]/95 dark:bg-[#111F38]/95 border border-[#1E5AA8]/15 dark:border-slate-800 p-6 sm:p-8 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6"
+        className="relative overflow-hidden rounded-3xl bg-[#FFFCF7]/95 dark:bg-[#111F38]/95 border border-[#1E5AA8]/15 dark:border-slate-800 p-4 sm:p-6 lg:p-8 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-6"
       >
-        <div className="relative z-10 max-w-xl flex-1">
+        <div className="relative z-10 w-full min-w-0 max-w-xl flex-1">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#FAF3E3] dark:bg-[#172A4A] border border-[#1E5AA8]/20 dark:border-slate-700 text-[#1E5AA8] dark:text-sky-300 text-xs font-semibold mb-3">
             <Icon3D name="logo" size={20} />
             <span>Trung tâm chỉ huy trực tuyến</span>
@@ -164,7 +164,7 @@ export default function DashboardView() {
         </div>
 
         {/* Compact 3D Showcase Orb Box (Scaled smoothly for mobile) */}
-        <div className="relative w-28 h-28 sm:w-36 sm:h-36 md:w-48 md:h-48 rounded-2xl bg-gradient-to-tr from-[#FAF3E3] via-[#F5E6C8]/60 to-[#F58220]/20 dark:from-[#172A4A] dark:via-[#111F38] dark:to-[#0B1528] border border-[#1E5AA8]/20 dark:border-slate-700/60 shadow-inner flex items-center justify-center shrink-0 overflow-hidden">
+        <div className="relative w-28 h-28 sm:w-36 sm:h-36 md:w-48 md:h-48 rounded-2xl bg-gradient-to-tr from-[#FAF3E3] via-[#F5E6C8]/60 to-[#F58220]/20 dark:from-[#172A4A] dark:via-[#111F38] dark:to-[#0B1528] border border-[#1E5AA8]/20 dark:border-slate-700/60 shadow-inner flex items-center justify-center shrink-0 overflow-hidden self-center md:self-auto">
           {threeDEnabled ? (
             <div className="w-full h-full">
               <LifeOSCoreScene variant="dashboard" interactive={true} />

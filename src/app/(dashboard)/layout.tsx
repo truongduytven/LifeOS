@@ -112,7 +112,7 @@ export default function DashboardLayout({
         refreshUser: fetchCurrentUser,
       }}
     >
-      <div className="relative min-h-screen bg-[#FAF3E3] dark:bg-[#0B1528] text-foreground flex overflow-hidden">
+      <div className="relative min-h-screen bg-[#FAF3E3] dark:bg-[#0B1528] text-foreground flex">
         {/* Soft, Harmonious Brand Palette Aura Background Orbs */}
         <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
           <div className="absolute -top-40 -left-40 w-[36rem] h-[36rem] bg-[#1E5AA8]/12 dark:bg-[#1E5AA8]/20 rounded-full blur-3xl" />
@@ -140,7 +140,7 @@ export default function DashboardLayout({
           />
 
           {/* Main View Area with Mobile Safe Bottom Padding */}
-          <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full pb-24 lg:pb-8">
+          <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full pb-32 lg:pb-8">
             {children}
           </main>
 
