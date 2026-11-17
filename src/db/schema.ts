@@ -148,6 +148,16 @@ function formatDateNullable(val: any): string | null {
   }
 }
 
+export function cleanOptionalText(value: unknown): string {
+  if (value === null || value === undefined) return '';
+  const text = String(value);
+  const normalized = text.trim().toLowerCase();
+  if (normalized === '' || normalized === 'null' || normalized === 'undefined') {
+    return '';
+  }
+  return text;
+}
+
 export function mapUserRow(row: any): User {
   return {
     id: Number(row.id),
@@ -205,11 +215,11 @@ export function mapArticleRow(row: any): Article {
     id: Number(row.id),
     title: String(row.title),
     slug: String(row.slug),
-    excerpt: String(row.excerpt || ''),
+    excerpt: cleanOptionalText(row.excerpt),
     content: String(row.content || ''),
     category: String(row.category || 'General'),
     tags: parseJsonArray<string>(row.tags),
-    coverImage: String(row.cover_image || ''),
+    coverImage: cleanOptionalText(row.cover_image),
     readingTime: Number(row.reading_time || 1),
     isPublic: Boolean(row.is_public),
     isFavorite: Boolean(row.is_favorite),

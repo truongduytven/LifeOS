@@ -421,11 +421,13 @@ export default function PublicArticlePage({
               </div>
             </div>
 
-            {article.excerpt && (
-              <p className="text-base sm:text-lg italic leading-relaxed opacity-90 border-l-3 pl-4 border-[#F58220] pt-1 min-w-0 break-words">
-                {article.excerpt}
-              </p>
-            )}
+            {article.excerpt &&
+              article.excerpt.trim().toLowerCase() !== 'null' &&
+              article.excerpt.trim().toLowerCase() !== 'undefined' && (
+                <p className="text-base sm:text-lg italic leading-relaxed opacity-90 border-l-4 pl-4 border-[#F58220] pt-1 min-w-0 break-words">
+                  {article.excerpt}
+                </p>
+              )}
           </div>
 
           {/* Article Body */}

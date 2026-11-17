@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/db';
+import { cleanOptionalText } from '@/db/schema';
 
 interface PublicArticleSummary {
   id: number;
@@ -127,10 +128,10 @@ export async function GET(request: NextRequest) {
       id: Number(row.id),
       title: String(row.title || ''),
       slug: String(row.slug || ''),
-      excerpt: String(row.excerpt || ''),
+      excerpt: cleanOptionalText(row.excerpt),
       category: String(row.category || 'Chung'),
       tags: parseTags(row.tags),
-      coverImage: String(row.cover_image || ''),
+      coverImage: cleanOptionalText(row.cover_image),
       readingTime: Number(row.reading_time || 1),
       createdAt: formatIsoDate(row.created_at),
       updatedAt: formatIsoDate(row.updated_at),
