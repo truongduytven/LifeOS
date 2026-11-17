@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -50,6 +51,11 @@ interface ArticleCoverImageProps {
   imgClassName?: string;
   priority?: boolean;
   lazy?: boolean;
+  surfaceOverride?: {
+    background: string;
+    text: string;
+    borderColor?: string;
+  };
   children?: React.ReactNode;
 }
 
@@ -60,6 +66,7 @@ function ArticleCoverImage({
   imgClassName = '',
   priority = false,
   lazy = false,
+  surfaceOverride,
   children,
 }: ArticleCoverImageProps) {
   const trimmedSrc = src?.trim() || '';
@@ -73,7 +80,19 @@ function ArticleCoverImage({
 
   return (
     <div
-      className={`relative w-full aspect-video overflow-hidden bg-gradient-to-tr from-[#FAF3E3] via-[#F5E6C8]/40 to-[#FFFCF7] dark:from-[#0B1528] dark:via-[#111F38] dark:to-[#0B1528] backdrop-blur-md ${className}`}
+      className={`relative w-full aspect-video overflow-hidden ${
+        surfaceOverride
+          ? ''
+          : 'bg-gradient-to-tr from-[#FAF3E3] via-[#F5E6C8]/40 to-[#FFFCF7] dark:from-[#0B1528] dark:via-[#111F38] dark:to-[#0B1528]'
+      } backdrop-blur-md ${className}`}
+      style={
+        surfaceOverride
+          ? {
+              background: surfaceOverride.background,
+              borderColor: surfaceOverride.borderColor,
+            }
+          : undefined
+      }
     >
       {hasSrc && isSafe && !hasError ? (
         <img
@@ -87,7 +106,12 @@ function ArticleCoverImage({
       ) : hasSrc ? (
         <div className="w-full h-full flex flex-col items-center justify-center gap-1.5 px-4 text-center">
           <Icon3D name="bookmark" size={40} />
-          <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
+          <span
+            className={`text-[11px] font-medium ${
+              surfaceOverride ? '' : 'text-slate-500 dark:text-slate-400'
+            }`}
+            style={surfaceOverride ? { color: surfaceOverride.text } : undefined}
+          >
             Không thể tải ảnh bìa
           </span>
         </div>
@@ -126,6 +150,7 @@ export default function ArticlesStudio() {
   const [searchQuery, setSearchQuery] = useState('');
 
   // Reader Mode States: Default to 'paper' (Vanilla Cream editorial surface)
+  const [mounted, setMounted] = useState(false);
   const [readingArticle, setReadingArticle] = useState<Article | null>(null);
   const [readerTheme, setReaderTheme] = useState<ReaderTheme>('paper');
   const [readerFont, setReaderFont] = useState<ReaderFont>('serif');
@@ -133,6 +158,10 @@ export default function ArticlesStudio() {
   const [readerLineHeight, setReaderLineHeight] = useState<number>(1.85);
   const [readingProgress, setReadingProgress] = useState<number>(0);
   const readerScrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Copied link toast state
   const [copiedSlug, setCopiedSlug] = useState<string | null>(null);
@@ -363,34 +392,85 @@ export default function ArticlesStudio() {
       ? filteredArticles[currentReaderIndex + 1]
       : null;
 
-  // Reader Theme Styles - Warm Vanilla Cream 'paper' theme
+  // Reader Theme Styles - Explicit inline color tokens so .dark overrides in globals.css never hijack Paper or Sepia
   const readerThemeStyles = {
     paper: {
-      wrapper: 'bg-[#FAF3E3] dark:bg-[#0B1528] text-[#1E293B] dark:text-slate-100',
-      header: 'bg-[#FFFCF7]/95 dark:bg-[#111F38]/95 border-[#F5E6C8] dark:border-slate-800 text-[#1E5AA8] dark:text-slate-100 shadow-sm',
-      body: 'text-[#2D3748] dark:text-slate-200',
-      accent: 'text-[#1E5AA8] dark:text-sky-400',
-      meta: 'text-slate-600 dark:text-slate-400',
-      tag: 'bg-[#F5E6C8]/50 dark:bg-[#1E5AA8]/20 border-[#F5E6C8] dark:border-slate-700 text-[#1E5AA8] dark:text-sky-300',
-      btn: 'bg-[#FFFCF7] dark:bg-[#111F38] hover:bg-[#F5E6C8]/50 dark:hover:bg-[#162746] text-[#1E5AA8] dark:text-slate-100 border-[#F5E6C8] dark:border-slate-800',
+      wrapperBg: '#FAF3E3',
+      headerBg: 'rgba(255, 252, 247, 0.95)',
+      textColor: '#0F172A',
+      bodyColor: '#0F172A',
+      headingColor: '#1E5AA8',
+      accentColor: '#1E5AA8',
+      metaColor: '#475569',
+      borderColor: '#E8D9BC',
+      dividerColor: 'rgba(30, 90, 168, 0.16)',
+      controlBorder: 'rgba(15, 23, 42, 0.18)',
+      tagBg: 'rgba(245, 230, 200, 0.55)',
+      tagBorder: '#E8D9BC',
+      tagText: '#1E5AA8',
+      btnBg: '#FFFCF7',
+      btnText: '#1E5AA8',
+      activeControlBg: '#1E5AA8',
+      publicBadgeBg: 'rgba(30, 90, 168, 0.1)',
+      publicBadgeBorder: 'rgba(30, 90, 168, 0.25)',
+      footerCardBg: 'rgba(255, 252, 247, 0.75)',
+      progressTrackBg: 'rgba(30, 90, 168, 0.1)',
+      coverFallbackBg: 'linear-gradient(to top right, #FAF3E3, rgba(245, 230, 200, 0.5), #FFFCF7)',
+      completedBg: 'rgba(16, 185, 129, 0.15)',
+      completedBorder: 'rgba(16, 185, 129, 0.35)',
+      completedText: '#047857',
     },
     sepia: {
-      wrapper: 'bg-[#fbf0d9] text-[#3c2f1f]',
-      header: 'bg-[#f4e6ca]/95 border-[#e8d2b2] text-[#3c2f1f]',
-      body: 'text-[#433422]',
-      accent: 'text-[#92400e]',
-      meta: 'text-[#78644e]',
-      tag: 'bg-[#f1dec0] border-[#dec29c] text-[#5e4933]',
-      btn: 'bg-[#f1dec0] hover:bg-[#e8cca8] text-[#3c2f1f] border-[#dec29c]',
+      wrapperBg: '#FBF0D9',
+      headerBg: 'rgba(244, 230, 202, 0.95)',
+      textColor: '#433422',
+      bodyColor: '#433422',
+      headingColor: '#3C2F1F',
+      accentColor: '#92400E',
+      metaColor: '#78644E',
+      borderColor: '#E8D2B2',
+      dividerColor: 'rgba(67, 52, 34, 0.16)',
+      controlBorder: 'rgba(67, 52, 34, 0.2)',
+      tagBg: '#F1DEC0',
+      tagBorder: '#DEC29C',
+      tagText: '#5E4933',
+      btnBg: '#F1DEC0',
+      btnText: '#3C2F1F',
+      activeControlBg: '#92400E',
+      publicBadgeBg: 'rgba(146, 64, 14, 0.1)',
+      publicBadgeBorder: 'rgba(146, 64, 14, 0.25)',
+      footerCardBg: 'rgba(241, 222, 192, 0.55)',
+      progressTrackBg: 'rgba(67, 52, 34, 0.1)',
+      coverFallbackBg: 'linear-gradient(to top right, #FBF0D9, #F1DEC0, #F4E6CA)',
+      completedBg: 'rgba(16, 185, 129, 0.15)',
+      completedBorder: 'rgba(16, 185, 129, 0.35)',
+      completedText: '#047857',
     },
     oled: {
-      wrapper: 'bg-black text-zinc-100',
-      header: 'bg-black/90 border-zinc-800 text-zinc-100',
-      body: 'text-zinc-200',
-      accent: 'text-[#F58220]',
-      meta: 'text-zinc-500',
-      tag: 'bg-zinc-900 border-zinc-800 text-zinc-400',
-      btn: 'bg-zinc-900 hover:bg-zinc-800 text-zinc-300 border-zinc-800',
+      wrapperBg: '#000000',
+      headerBg: 'rgba(0, 0, 0, 0.92)',
+      textColor: '#F4F4F5',
+      bodyColor: '#E4E4E7',
+      headingColor: '#F4F4F5',
+      accentColor: '#F58220',
+      metaColor: '#A1A1AA',
+      borderColor: '#27272A',
+      dividerColor: 'rgba(255, 255, 255, 0.14)',
+      controlBorder: 'rgba(255, 255, 255, 0.18)',
+      tagBg: '#18181B',
+      tagBorder: '#27272A',
+      tagText: '#D4D4D8',
+      btnBg: '#18181B',
+      btnText: '#E4E4E7',
+      activeControlBg: '#F58220',
+      publicBadgeBg: 'rgba(245, 130, 32, 0.14)',
+      publicBadgeBorder: 'rgba(245, 130, 32, 0.3)',
+      footerCardBg: 'rgba(24, 24, 27, 0.8)',
+      progressTrackBg: 'rgba(255, 255, 255, 0.12)',
+      coverFallbackBg: 'linear-gradient(to top right, #09090B, #18181B, #09090B)',
+      completedBg: 'rgba(16, 185, 129, 0.2)',
+      completedBorder: 'rgba(16, 185, 129, 0.35)',
+      completedText: '#6EE7B7',
     },
   }[readerTheme];
 
@@ -657,327 +737,490 @@ export default function ArticlesStudio() {
         </div>
       )}
 
-      {/* Fullscreen Reader Mode Overlay */}
-      <AnimatePresence>
-        {readingArticle && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.98 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.98 }}
-            className="fixed inset-0 z-50 flex flex-col bg-slate-900/40 backdrop-blur-md"
-          >
-            {/* Top Reading Progress Bar (Sunset Orange) */}
-            <div className="h-1.5 bg-black/5 w-full">
-              <div
-                className="h-full bg-gradient-to-r from-[#F58220] to-[#E06D10] transition-all duration-150"
-                style={{ width: `${readingProgress}%` }}
-              />
-            </div>
-
-            {/* Reader Floating Header Bar (Optimized for Mobile Screens down to 320px) */}
-            <header
-              className={`px-3 sm:px-6 py-2.5 sm:py-3.5 border-b flex items-center justify-between gap-2 sm:gap-4 backdrop-blur-xl transition-colors ${readerThemeStyles.header}`}
-            >
-              <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
-                <button
-                  onClick={() => setReadingArticle(null)}
-                  className={`p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl border transition-colors shrink-0 ${readerThemeStyles.btn}`}
-                  title="Quay lại danh sách"
-                  aria-label="Quay lại danh sách"
-                >
-                  <ChevronLeft className="w-5 h-5" />
-                </button>
-                <div className="min-w-0 flex items-center gap-2">
-                  <img
-                    src="/icons/3d/glasses.png"
-                    alt="Reader"
-                    className="w-5 h-5 sm:w-6 sm:h-6 object-contain drop-shadow-sm hidden xs:inline shrink-0"
-                  />
-                  <div className="min-w-0">
-                    <span className={`text-[10px] font-bold uppercase tracking-wider block leading-tight truncate ${readerThemeStyles.accent}`}>
-                      Chế độ Đọc
-                    </span>
-                    <h3 className="font-bold text-xs sm:text-sm truncate max-w-[110px] xs:max-w-[160px] sm:max-w-md leading-tight">
-                      {readingArticle.title}
-                    </h3>
-                  </div>
-                </div>
-              </div>
-
-              {/* Reader Controls Toolbar */}
-              <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-                {/* Edit Button in Reader Toolbar */}
-                <Link
-                  href={`/articles/${readingArticle.id}/edit`}
-                  className={`p-2 min-h-[40px] min-w-[40px] flex items-center justify-center rounded-xl border transition-colors ${readerThemeStyles.btn}`}
-                  title="Chỉnh sửa bài viết này trong trang riêng"
-                  aria-label="Chỉnh sửa bài viết"
-                >
-                  <Edit3 className="w-4 h-4" />
-                </Link>
-
-                {/* Font Selector (Tablet & Desktop) */}
-                <div className="hidden md:flex items-center border rounded-xl p-0.5 text-xs border-current/20">
-                  <button
-                    onClick={() => setReaderFont('serif')}
-                    className={`px-2.5 py-1.5 rounded-lg font-serif transition-colors ${
-                      readerFont === 'serif' ? 'bg-[#1E5AA8] text-white font-semibold' : 'hover:opacity-80'
-                    }`}
-                  >
-                    Serif
-                  </button>
-                  <button
-                    onClick={() => setReaderFont('sans')}
-                    className={`px-2.5 py-1.5 rounded-lg font-sans transition-colors ${
-                      readerFont === 'sans' ? 'bg-[#1E5AA8] text-white font-semibold' : 'hover:opacity-80'
-                    }`}
-                  >
-                    Sans
-                  </button>
-                  <button
-                    onClick={() => setReaderFont('mono')}
-                    className={`px-2.5 py-1.5 rounded-lg font-mono transition-colors ${
-                      readerFont === 'mono' ? 'bg-[#1E5AA8] text-white font-semibold' : 'hover:opacity-80'
-                    }`}
-                  >
-                    Mono
-                  </button>
-                </div>
-
-                {/* Font Size Selector */}
-                <div className="flex items-center border rounded-xl p-0.5 text-xs border-current/20">
-                  <button
-                    onClick={() => setReaderFontSize((s) => Math.max(14, s - 2))}
-                    className="min-h-[40px] px-2 py-1 hover:opacity-80 font-bold"
-                    title="Giảm kích thước chữ"
-                  >
-                    A-
-                  </button>
-                  <span className="px-1 text-[11px] font-mono opacity-80">{readerFontSize}</span>
-                  <button
-                    onClick={() => setReaderFontSize((s) => Math.min(26, s + 2))}
-                    className="min-h-[40px] px-2 py-1 hover:opacity-80 font-bold"
-                    title="Tăng kích thước chữ"
-                  >
-                    A+
-                  </button>
-                </div>
-
-                {/* Theme Selector (Paper Vanilla Cream, Sepia, OLED) */}
-                <div className="flex items-center border rounded-xl p-0.5 text-xs border-current/20">
-                  <button
-                    onClick={() => setReaderTheme('paper')}
-                    className={`min-h-[40px] p-2 sm:px-2.5 sm:py-1.5 rounded-lg flex items-center gap-1 transition-colors ${
-                      readerTheme === 'paper' ? 'bg-[#1E5AA8] text-white font-semibold' : 'hover:opacity-80'
-                    }`}
-                    title="Vanilla Cream Paper"
-                  >
-                    <Sun className="w-4 h-4" />
-                    <span className="hidden md:inline">Paper</span>
-                  </button>
-                  <button
-                    onClick={() => setReaderTheme('sepia')}
-                    className={`min-h-[40px] p-2 sm:px-2.5 sm:py-1.5 rounded-lg flex items-center gap-1 transition-colors ${
-                      readerTheme === 'sepia' ? 'bg-[#92400e] text-white font-semibold' : 'hover:opacity-80'
-                    }`}
-                    title="Warm Sepia"
-                  >
-                    <span className="w-2.5 h-2.5 rounded-full bg-[#dfc092] border border-[#a27845]" />
-                    <span className="hidden md:inline">Sepia</span>
-                  </button>
-                  <button
-                    onClick={() => setReaderTheme('oled')}
-                    className={`min-h-[40px] p-2 sm:px-2.5 sm:py-1.5 rounded-lg flex items-center gap-1 transition-colors ${
-                      readerTheme === 'oled' ? 'bg-zinc-800 text-white font-semibold' : 'hover:opacity-80'
-                    }`}
-                    title="Dark OLED"
-                  >
-                    <Moon className="w-4 h-4" />
-                    <span className="hidden md:inline">OLED</span>
-                  </button>
-                </div>
-
-                {/* Close Button */}
-                <button
-                  onClick={() => setReadingArticle(null)}
-                  className={`hidden sm:flex min-h-[44px] min-w-[44px] items-center justify-center p-2 rounded-xl border transition-colors ${readerThemeStyles.btn}`}
-                  title="Đóng chế độ đọc"
-                  aria-label="Đóng"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-            </header>
-
-            {/* Scrollable Reader Content */}
-            <div
-              ref={readerScrollRef}
-              onScroll={handleReaderScroll}
-              className={`flex-1 overflow-y-auto overscroll-contain custom-scrollbar px-6 py-12 transition-colors ${readerThemeStyles.wrapper}`}
-            >
-              <div className="max-w-2xl mx-auto space-y-8">
-                {/* Cover Image in Reader */}
-                {isSafeCoverUrl(readingArticle.coverImage) && (
-                  <ArticleCoverImage
-                    src={readingArticle.coverImage}
-                    alt={readingArticle.title}
-                    priority={true}
-                    className="rounded-3xl shadow-xl border border-white/40 dark:border-white/10 mb-8"
-                  />
-                )}
-
-                {/* Header Information */}
-                <div className="space-y-4 border-b pb-6 border-current/15">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${readerThemeStyles.tag}`}>
-                      {readingArticle.category}
-                    </span>
-                    <span className={`text-xs ${readerThemeStyles.meta}`}>
-                      {new Date(readingArticle.createdAt).toLocaleDateString('vi-VN', {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric',
-                      })}
-                    </span>
-                    {readingArticle.isPublic && (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#1E5AA8]/10 text-[#1E5AA8] dark:text-sky-300 border border-[#1E5AA8]/20 text-xs font-medium">
-                        <Globe className="w-3 h-3" /> Công khai
-                      </span>
-                    )}
-                  </div>
-
-                  <h1 className={`text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight leading-tight text-[#1E5AA8] dark:text-sky-300 ${readerFontClass}`}>
-                    {readingArticle.title}
-                  </h1>
-
-                  {readingArticle.excerpt && (
-                    <p className="text-base sm:text-lg italic leading-relaxed opacity-85 border-l-2 pl-4 border-[#F58220]">
-                      {readingArticle.excerpt}
-                    </p>
-                  )}
-                </div>
-
-                {/* Main Article Body Text */}
+      {/* Fullscreen Reader Mode Overlay (portaled to escape z-10 & space-y-6) */}
+      {mounted &&
+        createPortal(
+          <AnimatePresence>
+            {readingArticle && (
+              <motion.div
+                key="article-reader-overlay"
+                initial={{ opacity: 0, scale: 0.98 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.98 }}
+                className="fixed inset-0 z-[60] mt-0 flex flex-col"
+                style={{
+                  backgroundColor: readerThemeStyles.wrapperBg,
+                  color: readerThemeStyles.textColor,
+                  colorScheme: readerTheme === 'oled' ? 'dark' : 'light',
+                }}
+              >
+                {/* Top Reading Progress Bar (Sunset Orange) */}
                 <div
-                  className={`prose-reader ${readerFontClass} ${readerThemeStyles.body}`}
+                  className="h-1.5 w-full shrink-0"
+                  style={{ backgroundColor: readerThemeStyles.progressTrackBg }}
+                >
+                  <div
+                    className="h-full bg-gradient-to-r from-[#F58220] to-[#E06D10] transition-all duration-150"
+                    style={{ width: `${readingProgress}%` }}
+                  />
+                </div>
+
+                {/* Reader Floating Header Bar (Optimized for Mobile Screens down to 320px) */}
+                <header
+                  className="px-3 sm:px-6 py-2.5 sm:py-3.5 border-b flex items-center justify-between gap-2 sm:gap-4 backdrop-blur-xl transition-colors shadow-sm shrink-0"
                   style={{
-                    fontSize: `${readerFontSize}px`,
-                    lineHeight: readerLineHeight,
+                    backgroundColor: readerThemeStyles.headerBg,
+                    borderColor: readerThemeStyles.borderColor,
+                    color: readerThemeStyles.textColor,
                   }}
                 >
-                  {readingArticle.content ? (
-                    readingArticle.content.split('\n\n').map((paragraph, pIdx) => {
-                      if (paragraph.startsWith('# ')) {
-                        return (
-                          <h1 key={pIdx} className="text-2xl font-bold mt-8 mb-4 text-[#1E5AA8] dark:text-sky-300">
-                            {paragraph.replace('# ', '')}
-                          </h1>
-                        );
-                      }
-                      if (paragraph.startsWith('## ')) {
-                        return (
-                          <h2 key={pIdx} className="text-xl font-bold mt-6 mb-3 text-[#1E5AA8] dark:text-sky-300">
-                            {paragraph.replace('## ', '')}
-                          </h2>
-                        );
-                      }
-                      if (paragraph.startsWith('> ')) {
-                        return (
-                          <blockquote key={pIdx} className="border-l-4 border-[#F58220] pl-4 py-1 italic my-4 opacity-90">
-                            {paragraph.replace('> ', '')}
-                          </blockquote>
-                        );
-                      }
-                      return (
-                        <p key={pIdx} className="mb-6 whitespace-pre-line leading-relaxed">
-                          {paragraph}
-                        </p>
-                      );
-                    })
-                  ) : (
-                    <p className="italic opacity-60">Chưa có nội dung cho bài viết này.</p>
-                  )}
-                </div>
+                  <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+                    <button
+                      onClick={() => setReadingArticle(null)}
+                      className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl border transition-opacity hover:opacity-85 shrink-0"
+                      style={{
+                        backgroundColor: readerThemeStyles.btnBg,
+                        borderColor: readerThemeStyles.borderColor,
+                        color: readerThemeStyles.btnText,
+                      }}
+                      title="Quay lại danh sách"
+                      aria-label="Quay lại danh sách"
+                    >
+                      <ChevronLeft className="w-5 h-5" />
+                    </button>
+                    <div className="min-w-0 flex items-center gap-2">
+                      <img
+                        src="/icons/3d/glasses.png"
+                        alt="Reader"
+                        className="w-5 h-5 sm:w-6 sm:h-6 object-contain drop-shadow-sm hidden xs:inline shrink-0"
+                      />
+                      <div className="min-w-0">
+                        <span
+                          className="text-[10px] font-bold uppercase tracking-wider block leading-tight truncate"
+                          style={{ color: readerThemeStyles.accentColor }}
+                        >
+                          Chế độ Đọc
+                        </span>
+                        <h3
+                          className="font-bold text-xs sm:text-sm truncate max-w-[110px] xs:max-w-[160px] sm:max-w-md leading-tight"
+                          style={{ color: readerThemeStyles.textColor }}
+                        >
+                          {readingArticle.title}
+                        </h3>
+                      </div>
+                    </div>
+                  </div>
 
-                {/* Article Footer & Status Action */}
-                <div className="pt-10 border-t border-current/15 space-y-6">
-                  {/* Mark as completed prompt */}
-                  <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-5 rounded-2xl border border-current/15 bg-current/5">
-                    <div>
-                      <h4 className="font-semibold text-sm">Bạn đã đọc xong bài viết này?</h4>
-                      <p className={`text-xs mt-0.5 ${readerThemeStyles.meta}`}>
-                        Cập nhật tiến trình của bạn trong danh sách đọc LifeOS.
-                      </p>
+                  {/* Reader Controls Toolbar */}
+                  <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+                    {/* Edit Button in Reader Toolbar */}
+                    <Link
+                      href={`/articles/${readingArticle.id}/edit`}
+                      className="p-2 min-h-[40px] min-w-[40px] flex items-center justify-center rounded-xl border transition-opacity hover:opacity-85"
+                      style={{
+                        backgroundColor: readerThemeStyles.btnBg,
+                        borderColor: readerThemeStyles.borderColor,
+                        color: readerThemeStyles.btnText,
+                      }}
+                      title="Chỉnh sửa bài viết này trong trang riêng"
+                      aria-label="Chỉnh sửa bài viết"
+                    >
+                      <Edit3 className="w-4 h-4" />
+                    </Link>
+
+                    {/* Font Selector (Tablet & Desktop) */}
+                    <div
+                      className="hidden md:flex items-center border rounded-xl p-0.5 text-xs"
+                      style={{ borderColor: readerThemeStyles.controlBorder }}
+                    >
+                      <button
+                        onClick={() => setReaderFont('serif')}
+                        className={`px-2.5 py-1.5 rounded-lg font-serif transition-colors ${
+                          readerFont === 'serif' ? 'font-semibold' : 'hover:opacity-80'
+                        }`}
+                        style={
+                          readerFont === 'serif'
+                            ? { backgroundColor: readerThemeStyles.activeControlBg, color: '#FFFFFF' }
+                            : undefined
+                        }
+                      >
+                        Serif
+                      </button>
+                      <button
+                        onClick={() => setReaderFont('sans')}
+                        className={`px-2.5 py-1.5 rounded-lg font-sans transition-colors ${
+                          readerFont === 'sans' ? 'font-semibold' : 'hover:opacity-80'
+                        }`}
+                        style={
+                          readerFont === 'sans'
+                            ? { backgroundColor: readerThemeStyles.activeControlBg, color: '#FFFFFF' }
+                            : undefined
+                        }
+                      >
+                        Sans
+                      </button>
+                      <button
+                        onClick={() => setReaderFont('mono')}
+                        className={`px-2.5 py-1.5 rounded-lg font-mono transition-colors ${
+                          readerFont === 'mono' ? 'font-semibold' : 'hover:opacity-80'
+                        }`}
+                        style={
+                          readerFont === 'mono'
+                            ? { backgroundColor: readerThemeStyles.activeControlBg, color: '#FFFFFF' }
+                            : undefined
+                        }
+                      >
+                        Mono
+                      </button>
                     </div>
 
-                    <div className="flex items-center gap-2">
-                      {readingArticle.readStatus !== 'completed' ? (
-                        <button
-                          onClick={() => handleChangeStatus(readingArticle, 'completed')}
-                          className="px-4 py-2 rounded-xl bg-gradient-to-r from-[#F58220] to-[#E06D10] hover:from-[#E06D10] hover:to-[#C95B07] text-white font-semibold text-xs flex items-center gap-1.5 transition-all shadow-md shadow-[#F58220]/25"
+                    {/* Font Size Selector */}
+                    <div
+                      className="flex items-center border rounded-xl p-0.5 text-xs"
+                      style={{ borderColor: readerThemeStyles.controlBorder }}
+                    >
+                      <button
+                        onClick={() => setReaderFontSize((s) => Math.max(14, s - 2))}
+                        className="min-h-[40px] px-2 py-1 hover:opacity-80 font-bold"
+                        title="Giảm kích thước chữ"
+                      >
+                        A-
+                      </button>
+                      <span className="px-1 text-[11px] font-mono opacity-80">{readerFontSize}</span>
+                      <button
+                        onClick={() => setReaderFontSize((s) => Math.min(26, s + 2))}
+                        className="min-h-[40px] px-2 py-1 hover:opacity-80 font-bold"
+                        title="Tăng kích thước chữ"
+                      >
+                        A+
+                      </button>
+                    </div>
+
+                    {/* Theme Selector (Paper Vanilla Cream, Sepia, OLED) */}
+                    <div
+                      className="flex items-center border rounded-xl p-0.5 text-xs"
+                      style={{ borderColor: readerThemeStyles.controlBorder }}
+                    >
+                      <button
+                        onClick={() => setReaderTheme('paper')}
+                        className={`min-h-[40px] p-2 sm:px-2.5 sm:py-1.5 rounded-lg flex items-center gap-1 transition-colors ${
+                          readerTheme === 'paper' ? 'font-semibold' : 'hover:opacity-80'
+                        }`}
+                        style={
+                          readerTheme === 'paper'
+                            ? { backgroundColor: '#1E5AA8', color: '#FFFFFF' }
+                            : undefined
+                        }
+                        title="Vanilla Cream Paper"
+                      >
+                        <Sun className="w-4 h-4" />
+                        <span className="hidden md:inline">Paper</span>
+                      </button>
+                      <button
+                        onClick={() => setReaderTheme('sepia')}
+                        className={`min-h-[40px] p-2 sm:px-2.5 sm:py-1.5 rounded-lg flex items-center gap-1 transition-colors ${
+                          readerTheme === 'sepia' ? 'font-semibold' : 'hover:opacity-80'
+                        }`}
+                        style={
+                          readerTheme === 'sepia'
+                            ? { backgroundColor: '#92400E', color: '#FFFFFF' }
+                            : undefined
+                        }
+                        title="Warm Sepia"
+                      >
+                        <span className="w-2.5 h-2.5 rounded-full bg-[#dfc092] border border-[#a27845]" />
+                        <span className="hidden md:inline">Sepia</span>
+                      </button>
+                      <button
+                        onClick={() => setReaderTheme('oled')}
+                        className={`min-h-[40px] p-2 sm:px-2.5 sm:py-1.5 rounded-lg flex items-center gap-1 transition-colors ${
+                          readerTheme === 'oled' ? 'font-semibold' : 'hover:opacity-80'
+                        }`}
+                        style={
+                          readerTheme === 'oled'
+                            ? { backgroundColor: '#27272A', color: '#FFFFFF' }
+                            : undefined
+                        }
+                        title="Dark OLED"
+                      >
+                        <Moon className="w-4 h-4" />
+                        <span className="hidden md:inline">OLED</span>
+                      </button>
+                    </div>
+
+                    {/* Close Button */}
+                    <button
+                      onClick={() => setReadingArticle(null)}
+                      className="hidden sm:flex min-h-[44px] min-w-[44px] items-center justify-center p-2 rounded-xl border transition-opacity hover:opacity-85"
+                      style={{
+                        backgroundColor: readerThemeStyles.btnBg,
+                        borderColor: readerThemeStyles.borderColor,
+                        color: readerThemeStyles.btnText,
+                      }}
+                      title="Đóng chế độ đọc"
+                      aria-label="Đóng"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+                </header>
+
+                {/* Scrollable Reader Content */}
+                <div
+                  ref={readerScrollRef}
+                  onScroll={handleReaderScroll}
+                  className="flex-1 overflow-y-auto overscroll-contain custom-scrollbar px-6 py-12 transition-colors"
+                  style={{
+                    backgroundColor: readerThemeStyles.wrapperBg,
+                    color: readerThemeStyles.textColor,
+                  }}
+                >
+                  <div className="max-w-2xl mx-auto space-y-8">
+                    {/* Cover Image in Reader */}
+                    {isSafeCoverUrl(readingArticle.coverImage) && (
+                      <ArticleCoverImage
+                        src={readingArticle.coverImage}
+                        alt={readingArticle.title}
+                        priority={true}
+                        surfaceOverride={{
+                          background: readerThemeStyles.coverFallbackBg,
+                          text: readerThemeStyles.metaColor,
+                          borderColor: readerThemeStyles.borderColor,
+                        }}
+                        className="rounded-3xl shadow-xl border mb-8"
+                      />
+                    )}
+
+                    {/* Header Information */}
+                    <div
+                      className="space-y-4 border-b pb-6"
+                      style={{ borderColor: readerThemeStyles.dividerColor }}
+                    >
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span
+                          className="px-3 py-1 rounded-full text-xs font-semibold border"
+                          style={{
+                            backgroundColor: readerThemeStyles.tagBg,
+                            borderColor: readerThemeStyles.tagBorder,
+                            color: readerThemeStyles.tagText,
+                          }}
                         >
-                          <CheckCircle2 className="w-4 h-4" /> Đánh dấu đã xong
-                        </button>
-                      ) : (
-                        <span className="px-3 py-1.5 rounded-xl bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 text-xs font-semibold flex items-center gap-1.5">
-                          <Check className="w-3.5 h-3.5" /> Đã hoàn thành
+                          {readingArticle.category}
                         </span>
+                        <span
+                          className="text-xs"
+                          style={{ color: readerThemeStyles.metaColor }}
+                        >
+                          {new Date(readingArticle.createdAt).toLocaleDateString('vi-VN', {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric',
+                          })}
+                        </span>
+                        {readingArticle.isPublic && (
+                          <span
+                            className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border text-xs font-medium"
+                            style={{
+                              backgroundColor: readerThemeStyles.publicBadgeBg,
+                              color: readerThemeStyles.accentColor,
+                              borderColor: readerThemeStyles.publicBadgeBorder,
+                            }}
+                          >
+                            <Globe className="w-3 h-3" /> Công khai
+                          </span>
+                        )}
+                      </div>
+
+                      <h1
+                        className={`text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight leading-tight ${readerFontClass}`}
+                        style={{ color: readerThemeStyles.headingColor }}
+                      >
+                        {readingArticle.title}
+                      </h1>
+
+                      {readingArticle.excerpt && (
+                        <p
+                          className="text-base sm:text-lg italic leading-relaxed opacity-85 border-l-2 pl-4"
+                          style={{
+                            borderColor: '#F58220',
+                            color: readerThemeStyles.bodyColor,
+                          }}
+                        >
+                          {readingArticle.excerpt}
+                        </p>
                       )}
                     </div>
-                  </div>
 
-                  {/* Previous / Next Article Navigation */}
-                  <div className="flex items-center justify-between gap-4 pt-2">
-                    {prevArticle ? (
-                      <button
-                        onClick={() => {
-                          setReadingArticle(prevArticle);
-                          setReadingProgress(0);
-                        }}
-                        className={`flex-1 p-3.5 rounded-2xl border text-left transition-colors flex items-center gap-2 ${readerThemeStyles.btn}`}
-                      >
-                        <ChevronLeft className="w-4 h-4 flex-shrink-0" />
-                        <div className="min-w-0">
-                          <span className="text-[10px] uppercase font-bold tracking-wider opacity-60 block">
-                            Bài trước
-                          </span>
-                          <span className="text-xs font-semibold truncate block">
-                            {prevArticle.title}
-                          </span>
-                        </div>
-                      </button>
-                    ) : (
-                      <div className="flex-1" />
-                    )}
+                    {/* Main Article Body Text */}
+                    <div
+                      className={`prose-reader ${readerFontClass}`}
+                      style={{
+                        fontSize: `${readerFontSize}px`,
+                        lineHeight: readerLineHeight,
+                        color: readerThemeStyles.bodyColor,
+                      }}
+                    >
+                      {readingArticle.content ? (
+                        readingArticle.content.split('\n\n').map((paragraph, pIdx) => {
+                          if (paragraph.startsWith('# ')) {
+                            return (
+                              <h1
+                                key={pIdx}
+                                className="text-2xl font-bold mt-8 mb-4"
+                                style={{ color: readerThemeStyles.headingColor }}
+                              >
+                                {paragraph.replace('# ', '')}
+                              </h1>
+                            );
+                          }
+                          if (paragraph.startsWith('## ')) {
+                            return (
+                              <h2
+                                key={pIdx}
+                                className="text-xl font-bold mt-6 mb-3"
+                                style={{ color: readerThemeStyles.headingColor }}
+                              >
+                                {paragraph.replace('## ', '')}
+                              </h2>
+                            );
+                          }
+                          if (paragraph.startsWith('> ')) {
+                            return (
+                              <blockquote
+                                key={pIdx}
+                                className="border-l-4 pl-4 py-1 italic my-4 opacity-90"
+                                style={{ borderColor: '#F58220' }}
+                              >
+                                {paragraph.replace('> ', '')}
+                              </blockquote>
+                            );
+                          }
+                          return (
+                            <p key={pIdx} className="mb-6 whitespace-pre-line leading-relaxed">
+                              {paragraph}
+                            </p>
+                          );
+                        })
+                      ) : (
+                        <p className="italic opacity-60">Chưa có nội dung cho bài viết này.</p>
+                      )}
+                    </div>
 
-                    {nextArticle ? (
-                      <button
-                        onClick={() => {
-                          setReadingArticle(nextArticle);
-                          setReadingProgress(0);
+                    {/* Article Footer & Status Action */}
+                    <div
+                      className="pt-10 border-t space-y-6"
+                      style={{ borderColor: readerThemeStyles.dividerColor }}
+                    >
+                      {/* Mark as completed prompt */}
+                      <div
+                        className="flex flex-col sm:flex-row items-center justify-between gap-4 p-5 rounded-2xl border"
+                        style={{
+                          borderColor: readerThemeStyles.dividerColor,
+                          backgroundColor: readerThemeStyles.footerCardBg,
                         }}
-                        className={`flex-1 p-3.5 rounded-2xl border text-right transition-colors flex items-center justify-end gap-2 ${readerThemeStyles.btn}`}
                       >
-                        <div className="min-w-0">
-                          <span className="text-[10px] uppercase font-bold tracking-wider opacity-60 block">
-                            Bài tiếp theo
-                          </span>
-                          <span className="text-xs font-semibold truncate block">
-                            {nextArticle.title}
-                          </span>
+                        <div>
+                          <h4
+                            className="font-semibold text-sm"
+                            style={{ color: readerThemeStyles.textColor }}
+                          >
+                            Bạn đã đọc xong bài viết này?
+                          </h4>
+                          <p
+                            className="text-xs mt-0.5"
+                            style={{ color: readerThemeStyles.metaColor }}
+                          >
+                            Cập nhật tiến trình của bạn trong danh sách đọc LifeOS.
+                          </p>
                         </div>
-                        <ChevronRight className="w-4 h-4 flex-shrink-0" />
-                      </button>
-                    ) : (
-                      <div className="flex-1" />
-                    )}
+
+                        <div className="flex items-center gap-2">
+                          {readingArticle.readStatus !== 'completed' ? (
+                            <button
+                              onClick={() => handleChangeStatus(readingArticle, 'completed')}
+                              className="px-4 py-2 rounded-xl bg-gradient-to-r from-[#F58220] to-[#E06D10] hover:from-[#E06D10] hover:to-[#C95B07] text-white font-semibold text-xs flex items-center gap-1.5 transition-all shadow-md shadow-[#F58220]/25"
+                            >
+                              <CheckCircle2 className="w-4 h-4" /> Đánh dấu đã xong
+                            </button>
+                          ) : (
+                            <span
+                              className="px-3 py-1.5 rounded-xl border text-xs font-semibold flex items-center gap-1.5"
+                              style={{
+                                backgroundColor: readerThemeStyles.completedBg,
+                                borderColor: readerThemeStyles.completedBorder,
+                                color: readerThemeStyles.completedText,
+                              }}
+                            >
+                              <Check className="w-3.5 h-3.5" /> Đã hoàn thành
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Previous / Next Article Navigation */}
+                      <div className="flex items-center justify-between gap-4 pt-2">
+                        {prevArticle ? (
+                          <button
+                            onClick={() => {
+                              setReadingArticle(prevArticle);
+                              setReadingProgress(0);
+                            }}
+                            className="flex-1 p-3.5 rounded-2xl border text-left transition-opacity hover:opacity-85 flex items-center gap-2"
+                            style={{
+                              backgroundColor: readerThemeStyles.btnBg,
+                              borderColor: readerThemeStyles.borderColor,
+                              color: readerThemeStyles.btnText,
+                            }}
+                          >
+                            <ChevronLeft className="w-4 h-4 flex-shrink-0" />
+                            <div className="min-w-0">
+                              <span className="text-[10px] uppercase font-bold tracking-wider opacity-60 block">
+                                Bài trước
+                              </span>
+                              <span className="text-xs font-semibold truncate block">
+                                {prevArticle.title}
+                              </span>
+                            </div>
+                          </button>
+                        ) : (
+                          <div className="flex-1" />
+                        )}
+
+                        {nextArticle ? (
+                          <button
+                            onClick={() => {
+                              setReadingArticle(nextArticle);
+                              setReadingProgress(0);
+                            }}
+                            className="flex-1 p-3.5 rounded-2xl border text-right transition-opacity hover:opacity-85 flex items-center justify-end gap-2"
+                            style={{
+                              backgroundColor: readerThemeStyles.btnBg,
+                              borderColor: readerThemeStyles.borderColor,
+                              color: readerThemeStyles.btnText,
+                            }}
+                          >
+                            <div className="min-w-0">
+                              <span className="text-[10px] uppercase font-bold tracking-wider opacity-60 block">
+                                Bài tiếp theo
+                              </span>
+                              <span className="text-xs font-semibold truncate block">
+                                {nextArticle.title}
+                              </span>
+                            </div>
+                            <ChevronRight className="w-4 h-4 flex-shrink-0" />
+                          </button>
+                        ) : (
+                          <div className="flex-1" />
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </div>
-          </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>,
+          document.body
         )}
-      </AnimatePresence>
     </div>
   );
 }

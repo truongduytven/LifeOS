@@ -32,12 +32,15 @@ export async function middleware(request: NextRequest) {
   const secretKey = new TextEncoder().encode(jwtSecret);
 
   // Allow public routes
-  if (
+  const isPublicRoute =
     pathname === '/login' ||
+    pathname === '/p' ||
     pathname.startsWith('/p/') ||
     pathname.startsWith('/api/auth/') ||
-    pathname.startsWith('/api/articles/public/')
-  ) {
+    pathname === '/api/articles/public' ||
+    pathname.startsWith('/api/articles/public/');
+
+  if (isPublicRoute) {
     // If authenticated user tries to visit /login, redirect to dashboard
     if (pathname === '/login') {
       const token = request.cookies.get(sessionCookieName)?.value;

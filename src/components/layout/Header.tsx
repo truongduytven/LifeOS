@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import {
   Menu,
@@ -33,8 +34,13 @@ export default function Header({
   user,
 }: HeaderProps) {
   const router = useRouter();
+  const [mounted, setMounted] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Handle Ctrl+K / Cmd+K shortcut
   useEffect(() => {
@@ -148,95 +154,98 @@ export default function Header({
       </header>
 
       {/* Quick Command / Search Modal */}
-      {searchOpen && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 px-4 animate-in fade-in duration-150">
-          <div
-            onClick={() => setSearchOpen(false)}
-            className="fixed inset-0 bg-slate-900/50 backdrop-blur-md"
-            aria-hidden="true"
-          />
+      {mounted &&
+        searchOpen &&
+        createPortal(
+          <div className="fixed inset-0 z-[60] flex items-start justify-center pt-20 px-4 animate-in fade-in duration-150">
+            <div
+              onClick={() => setSearchOpen(false)}
+              className="fixed inset-0 bg-slate-900/50 backdrop-blur-md"
+              aria-hidden="true"
+            />
 
-          <div className="relative w-full max-w-lg rounded-3xl bg-[#FFFCF7]/90 dark:bg-[#111F38]/90 backdrop-blur-xl saturate-160 border border-white/80 dark:border-white/10 p-4 shadow-2xl overflow-hidden z-10 text-slate-800 dark:text-slate-100">
-            <div className="relative mb-3">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#1E5AA8] dark:text-sky-400" />
-              <input
-                type="text"
-                autoFocus
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Nhập tên trang hoặc tác vụ..."
-                className="w-full pl-10 pr-10 py-2.5 rounded-2xl bg-[#FAF3E3] dark:bg-[#172A4A] border border-[#1E5AA8]/20 dark:border-slate-700 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#1E5AA8] dark:focus:ring-sky-500"
-              />
-              <button
-                onClick={() => setSearchOpen(false)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-mono px-1.5 py-0.5 rounded bg-[#F5E6C8]/60 dark:bg-slate-700 text-slate-600 dark:text-slate-300"
-              >
-                ESC
-              </button>
-            </div>
-
-            <div className="space-y-1 text-xs max-h-[60vh] overflow-y-auto overscroll-contain custom-scrollbar pr-1">
-              <div className="px-2 py-1 text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-                Truy cập nhanh
+            <div className="relative w-full max-w-lg rounded-3xl bg-[#FFFCF7]/90 dark:bg-[#111F38]/90 backdrop-blur-xl saturate-160 border border-white/80 dark:border-white/10 p-4 shadow-2xl overflow-hidden z-10 text-slate-800 dark:text-slate-100">
+              <div className="relative mb-3">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#1E5AA8] dark:text-sky-400" />
+                <input
+                  type="text"
+                  autoFocus
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Nhập tên trang hoặc tác vụ..."
+                  className="w-full pl-10 pr-10 py-2.5 rounded-2xl bg-[#FAF3E3] dark:bg-[#172A4A] border border-[#1E5AA8]/20 dark:border-slate-700 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#1E5AA8] dark:focus:ring-sky-500"
+                />
+                <button
+                  onClick={() => setSearchOpen(false)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-mono px-1.5 py-0.5 rounded bg-[#F5E6C8]/60 dark:bg-slate-700 text-slate-600 dark:text-slate-300"
+                >
+                  ESC
+                </button>
               </div>
-              <button
-                onClick={() => quickNav('/tasks')}
-                className="w-full flex items-center justify-between p-2 rounded-xl hover:bg-emerald-50 dark:hover:bg-[#172A4A] text-slate-700 dark:text-slate-200 hover:text-emerald-700 dark:hover:text-emerald-300 transition-colors text-left"
-              >
-                <div className="flex items-center gap-2.5">
-                  <Icon3D name="tick" size={20} />
-                  <span className="font-medium">Quản lý Công việc & Checklist</span>
-                </div>
-                <span className="text-[10px] font-mono text-slate-400">/tasks</span>
-              </button>
 
-              <button
-                onClick={() => quickNav('/timeline')}
-                className="w-full flex items-center justify-between p-2 rounded-xl hover:bg-amber-50 dark:hover:bg-[#172A4A] text-slate-700 dark:text-slate-200 hover:text-amber-800 dark:hover:text-amber-300 transition-colors text-left"
-              >
-                <div className="flex items-center gap-2.5">
-                  <Icon3D name="clock" size={20} />
-                  <span className="font-medium">Dòng thời gian & Cột mốc</span>
+              <div className="space-y-1 text-xs max-h-[60vh] overflow-y-auto overscroll-contain custom-scrollbar pr-1">
+                <div className="px-2 py-1 text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                  Truy cập nhanh
                 </div>
-                <span className="text-[10px] font-mono text-slate-400">/timeline</span>
-              </button>
+                <button
+                  onClick={() => quickNav('/tasks')}
+                  className="w-full flex items-center justify-between p-2 rounded-xl hover:bg-emerald-50 dark:hover:bg-[#172A4A] text-slate-700 dark:text-slate-200 hover:text-emerald-700 dark:hover:text-emerald-300 transition-colors text-left"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <Icon3D name="tick" size={20} />
+                    <span className="font-medium">Quản lý Công việc & Checklist</span>
+                  </div>
+                  <span className="text-[10px] font-mono text-slate-400">/tasks</span>
+                </button>
 
-              <button
-                onClick={() => quickNav('/notes')}
-                className="w-full flex items-center justify-between p-2 rounded-xl hover:bg-purple-50 dark:hover:bg-[#172A4A] text-slate-700 dark:text-slate-200 hover:text-purple-700 dark:hover:text-purple-300 transition-colors text-left"
-              >
-                <div className="flex items-center gap-2.5">
-                  <Icon3D name="notebook" size={20} />
-                  <span className="font-medium">Xem & Tạo Ghi chú nhanh</span>
-                </div>
-                <span className="text-[10px] font-mono text-slate-400">/notes</span>
-              </button>
+                <button
+                  onClick={() => quickNav('/timeline')}
+                  className="w-full flex items-center justify-between p-2 rounded-xl hover:bg-amber-50 dark:hover:bg-[#172A4A] text-slate-700 dark:text-slate-200 hover:text-amber-800 dark:hover:text-amber-300 transition-colors text-left"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <Icon3D name="clock" size={20} />
+                    <span className="font-medium">Dòng thời gian & Cột mốc</span>
+                  </div>
+                  <span className="text-[10px] font-mono text-slate-400">/timeline</span>
+                </button>
 
-              <button
-                onClick={() => quickNav('/articles')}
-                className="w-full flex items-center justify-between p-2 rounded-xl hover:bg-sky-50 dark:hover:bg-[#172A4A] text-slate-700 dark:text-slate-200 hover:text-sky-700 dark:hover:text-sky-300 transition-colors text-left"
-              >
-                <div className="flex items-center gap-2.5">
-                  <Icon3D name="bookmark" size={20} />
-                  <span className="font-medium">Kho Bài viết & Chế độ Đọc</span>
-                </div>
-                <span className="text-[10px] font-mono text-slate-400">/articles</span>
-              </button>
+                <button
+                  onClick={() => quickNav('/notes')}
+                  className="w-full flex items-center justify-between p-2 rounded-xl hover:bg-purple-50 dark:hover:bg-[#172A4A] text-slate-700 dark:text-slate-200 hover:text-purple-700 dark:hover:text-purple-300 transition-colors text-left"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <Icon3D name="notebook" size={20} />
+                    <span className="font-medium">Xem & Tạo Ghi chú nhanh</span>
+                  </div>
+                  <span className="text-[10px] font-mono text-slate-400">/notes</span>
+                </button>
 
-              <button
-                onClick={() => quickNav('/vault')}
-                className="w-full flex items-center justify-between p-2 rounded-xl hover:bg-rose-50 dark:hover:bg-[#172A4A] text-slate-700 dark:text-slate-200 hover:text-rose-700 dark:hover:text-rose-300 transition-colors text-left"
-              >
-                <div className="flex items-center gap-2.5">
-                  <Icon3D name="lock" size={20} />
-                  <span className="font-medium">Mở Kho bảo mật (PIN Vault)</span>
-                </div>
-                <span className="text-[10px] font-mono text-slate-400">/vault</span>
-              </button>
+                <button
+                  onClick={() => quickNav('/articles')}
+                  className="w-full flex items-center justify-between p-2 rounded-xl hover:bg-sky-50 dark:hover:bg-[#172A4A] text-slate-700 dark:text-slate-200 hover:text-sky-700 dark:hover:text-sky-300 transition-colors text-left"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <Icon3D name="bookmark" size={20} />
+                    <span className="font-medium">Kho Bài viết & Chế độ Đọc</span>
+                  </div>
+                  <span className="text-[10px] font-mono text-slate-400">/articles</span>
+                </button>
+
+                <button
+                  onClick={() => quickNav('/vault')}
+                  className="w-full flex items-center justify-between p-2 rounded-xl hover:bg-rose-50 dark:hover:bg-[#172A4A] text-slate-700 dark:text-slate-200 hover:text-rose-700 dark:hover:text-rose-300 transition-colors text-left"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <Icon3D name="lock" size={20} />
+                    <span className="font-medium">Mở Kho bảo mật (PIN Vault)</span>
+                  </div>
+                  <span className="text-[10px] font-mono text-slate-400">/vault</span>
+                </button>
+              </div>
             </div>
-          </div>
-        </div>
-      )}
+          </div>,
+          document.body
+        )}
     </>
   );
 }

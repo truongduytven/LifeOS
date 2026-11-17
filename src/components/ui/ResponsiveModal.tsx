@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useEffect, useId } from 'react';
+import React, { useEffect, useId, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 
 export interface ResponsiveModalProps {
@@ -34,6 +35,11 @@ export default function ResponsiveModal({
 }: ResponsiveModalProps) {
   const titleId = useId();
   const subtitleId = useId();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Escape key listener & body scroll lock
   useEffect(() => {
@@ -57,11 +63,11 @@ export default function ResponsiveModal({
     };
   }, [isOpen, onClose]);
 
-  if (!isOpen) return null;
+  if (!isOpen || !mounted) return null;
 
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 md:p-6 transition-opacity animate-in fade-in duration-200"
+      className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4 md:p-6 transition-opacity animate-in fade-in duration-200"
       role="dialog"
       aria-modal="true"
       aria-labelledby={titleId}
@@ -122,6 +128,7 @@ export default function ResponsiveModal({
           {children}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
