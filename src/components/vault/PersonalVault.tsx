@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Lock,
@@ -28,8 +28,12 @@ import {
   Sparkles,
   Info,
   ChevronRight,
+  AlertCircle,
 } from 'lucide-react';
 import type { VaultItem } from '@/types/lifeos';
+import GlassCard from '@/components/ui/GlassCard';
+import ResponsiveModal from '@/components/ui/ResponsiveModal';
+import Icon3D from '@/components/ui/Icon3D';
 
 type VaultCategory = 'credential' | 'api_key' | 'secure_note' | 'card' | 'document';
 
@@ -46,7 +50,7 @@ const CATEGORY_MAP: Record<VaultCategory, CategoryConfig> = {
     label: 'Tài khoản & Mật khẩu',
     icon: Key,
     icon3d: '/icons/3d/key.png',
-    color: 'text-[#1E5AA8] dark:text-blue-400 bg-[#F5E6C8]/40 dark:bg-blue-950/40 border-[#F5E6C8] dark:border-blue-900/60',
+    color: 'text-[#1E5AA8] dark:text-sky-300 bg-[#1E5AA8]/10 dark:bg-blue-950/40 border-[#1E5AA8]/20 dark:border-blue-900/60',
     activeBg: 'bg-[#F5E6C8]/70 dark:bg-blue-950/70 border-[#1E5AA8] dark:border-blue-500 ring-2 ring-[#1E5AA8]/20 shadow-md',
   },
   api_key: {
@@ -101,6 +105,7 @@ export default function PersonalVault() {
   // Vault Items States
   const [items, setItems] = useState<VaultItem[]>([]);
   const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
@@ -136,13 +141,17 @@ export default function PersonalVault() {
   const fetchVaultItems = async () => {
     try {
       setLoading(true);
+      setErrorMessage(null);
       const res = await fetch('/api/vault');
       if (res.ok) {
         const data = await res.json();
         setItems(Array.isArray(data) ? data : data.items || []);
+      } else {
+        setErrorMessage('Không thể tải các mục trong kho bảo mật.');
       }
     } catch (err) {
       console.error('Lỗi khi tải kho bảo mật:', err);
+      setErrorMessage('Lỗi kết nối khi tải kho bảo mật.');
     } finally {
       setLoading(false);
     }
@@ -214,21 +223,32 @@ export default function PersonalVault() {
   // Toggle Favorite
   const handleToggleFavorite = async (item: VaultItem, e?: React.MouseEvent) => {
     e?.stopPropagation();
+    const previousFav = item.isFavorite;
+    const updatedFav = !previousFav;
+
+    setItems((prev) =>
+      prev.map((it) => (it.id === item.id ? { ...it, isFavorite: updatedFav } : it))
+    );
+
     try {
-      const updatedFav = !item.isFavorite;
       const res = await fetch(`/api/vault/${item.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ isFavorite: updatedFav }),
       });
 
-      if (res.ok) {
+      if (!res.ok) {
         setItems((prev) =>
-          prev.map((it) => (it.id === item.id ? { ...it, isFavorite: updatedFav } : it))
+          prev.map((it) => (it.id === item.id ? { ...it, isFavorite: previousFav } : it))
         );
+        setErrorMessage('Không thể cập nhật yêu thích.');
       }
     } catch (err) {
       console.error('Lỗi khi cập nhật yêu thích:', err);
+      setItems((prev) =>
+        prev.map((it) => (it.id === item.id ? { ...it, isFavorite: previousFav } : it))
+      );
+      setErrorMessage('Lỗi kết nối khi cập nhật yêu thích.');
     }
   };
 
@@ -238,12 +258,16 @@ export default function PersonalVault() {
     if (!confirm('Bạn có chắc chắn muốn xóa mục bảo mật này vĩnh viễn?')) return;
 
     try {
+      setErrorMessage(null);
       const res = await fetch(`/api/vault/${itemId}`, { method: 'DELETE' });
       if (res.ok) {
         setItems((prev) => prev.filter((it) => it.id !== itemId));
+      } else {
+        setErrorMessage('Không thể xóa mục bí mật. Vui lòng thử lại.');
       }
     } catch (err) {
       console.error('Lỗi khi xóa mục kho:', err);
+      setErrorMessage('Lỗi kết nối khi xóa mục bí mật.');
     }
   };
 
@@ -299,10 +323,11 @@ export default function PersonalVault() {
   // Save / Update Item
   const handleSaveItem = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim()) return;
+    if (!title.trim() || savingItem) return;
 
     try {
       setSavingItem(true);
+      setErrorMessage(null);
       const payload = {
         title: title.trim(),
         category,
@@ -325,6 +350,9 @@ export default function PersonalVault() {
           const updated = await res.json();
           setItems((prev) => prev.map((it) => (it.id === updated.id ? updated : it)));
           setIsEditorOpen(false);
+        } else {
+          const errData = await res.json().catch(() => null);
+          setErrorMessage(errData?.error || 'Không thể cập nhật mục bí mật.');
         }
       } else {
         const res = await fetch('/api/vault', {
@@ -337,10 +365,14 @@ export default function PersonalVault() {
           const created = await res.json();
           setItems((prev) => [created, ...prev]);
           setIsEditorOpen(false);
+        } else {
+          const errData = await res.json().catch(() => null);
+          setErrorMessage(errData?.error || 'Không thể thêm mục bí mật.');
         }
       }
     } catch (err) {
       console.error('Lỗi khi lưu mục kho:', err);
+      setErrorMessage('Lỗi kết nối khi lưu mục bí mật.');
     } finally {
       setSavingItem(false);
     }
@@ -353,12 +385,12 @@ export default function PersonalVault() {
     setChangePinSuccess('');
 
     if (newPin !== confirmPin) {
-      setChangePinError('Mã PIN mới và xác nhận không khớp nhau.');
+      setChangePinError('Mã PIN mới và xác nhận mã PIN không khớp.');
       return;
     }
 
     if (newPin.length < 4 || newPin.length > 6) {
-      setChangePinError('Mã PIN phải có độ dài từ 4 đến 6 chữ số.');
+      setChangePinError('Mã PIN mới phải có độ dài từ 4 đến 6 chữ số.');
       return;
     }
 
@@ -369,14 +401,14 @@ export default function PersonalVault() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: 'change',
-          currentPin,
-          newPin,
+          oldPin: currentPin,
+          newPin: newPin,
         }),
       });
 
       const data = await res.json();
-      if (res.ok) {
-        setChangePinSuccess('Mã PIN đã được cập nhật thành công!');
+      if (res.ok && data.success) {
+        setChangePinSuccess('Đổi mã PIN cấp 2 thành công!');
         setCurrentPin('');
         setNewPin('');
         setConfirmPin('');
@@ -385,10 +417,10 @@ export default function PersonalVault() {
           setChangePinSuccess('');
         }, 1500);
       } else {
-        setChangePinError(data.error || 'Cập nhật mã PIN thất bại. Vui lòng kiểm tra mã PIN hiện tại.');
+        setChangePinError(data.error || 'Đổi mã PIN thất bại. Vui lòng kiểm tra mã PIN hiện tại.');
       }
     } catch {
-      setChangePinError('Lỗi kết nối máy chủ khi cập nhật mã PIN.');
+      setChangePinError('Lỗi kết nối đến máy chủ khi đổi mã PIN.');
     } finally {
       setChangingPin(false);
     }
@@ -397,13 +429,9 @@ export default function PersonalVault() {
   // Filtered Items
   const filteredItems = useMemo(() => {
     return items.filter((it) => {
-      // Favorite filter
       if (showFavoritesOnly && !it.isFavorite) return false;
-
-      // Category filter
       if (selectedCategory !== 'all' && it.category !== selectedCategory) return false;
 
-      // Search query
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
         const matchesTitle = it.title.toLowerCase().includes(q);
@@ -429,29 +457,26 @@ export default function PersonalVault() {
   }, [items]);
 
   // ==========================================
-  // VIEW: PIN LOCK SCREEN (BRIGHT VANILLA CREAM & SAPPHIRE BLUE + DARK MODE)
+  // VIEW: PIN LOCK SCREEN (FROSTED GLASS 3D VAULT CENTERPIECE)
   // ==========================================
   if (!isUnlocked) {
     return (
-      <div className="min-h-[70vh] flex items-center justify-center py-10 px-4">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95, y: 15 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          className="w-full max-w-md max-h-[90dvh] sm:max-h-[88vh] overflow-y-auto overscroll-contain custom-scrollbar rounded-3xl p-6 sm:p-8 bg-gradient-to-br from-[#FAF3E3] via-[#FFFCF7] to-[#F5E6C8]/50 dark:from-[#0B1528] dark:via-[#111F38] dark:to-[#0B1528] border border-[#F5E6C8] dark:border-slate-800 shadow-xl shadow-[#1E5AA8]/5 dark:shadow-black/40 relative text-center"
+      <div className="min-h-[75vh] flex items-center justify-center py-8 px-4">
+        <GlassCard
+          tilt={false}
+          glowColor="sapphire"
+          className="w-full max-w-md max-h-[90dvh] sm:max-h-[88vh] overflow-y-auto overscroll-contain custom-scrollbar rounded-3xl border border-white/80 dark:border-white/10 shadow-2xl relative text-center"
+          padding="p-6 sm:p-8"
         >
           {/* Soft Glow Accent */}
           <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-48 h-48 bg-gradient-to-r from-[#F5E6C8]/60 to-[#FAF3E3]/80 dark:from-[#1E5AA8]/20 dark:to-[#111F38]/40 rounded-full blur-3xl pointer-events-none" />
 
           {/* 3D Color Lock Icon */}
           <div className="mx-auto mb-3 flex items-center justify-center">
-            <img
-              src="/icons/3d/lock.png"
-              alt="Lock"
-              className="w-16 h-16 object-contain hover:scale-110 hover:-rotate-3 transition-transform duration-300 drop-shadow-md"
-            />
+            <Icon3D name="lock" size={44} float={true} priority={true} />
           </div>
 
-          <h2 className="text-2xl font-bold text-[#1E5AA8] dark:text-slate-100 tracking-tight">
+          <h2 className="text-2xl font-bold text-[#1E5AA8] dark:text-sky-300 tracking-tight">
             Kho Lưu trữ Cá nhân
           </h2>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 mb-6">
@@ -480,13 +505,13 @@ export default function PersonalVault() {
             <motion.div
               initial={{ opacity: 0, y: -5 }}
               animate={{ opacity: 1, y: 0 }}
-              className="mb-4 p-2.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-xs font-medium"
+              className="mb-4 p-2.5 rounded-xl bg-rose-500/10 dark:bg-rose-950/40 border border-rose-500/30 text-rose-700 dark:text-rose-300 text-xs font-semibold"
             >
               {pinError}
             </motion.div>
           )}
 
-          {/* Numpad Keypad */}
+          {/* Numpad Keypad: Tactile 3D Glass buttons */}
           <div className="grid grid-cols-3 gap-2.5 max-w-[280px] mx-auto mb-6">
             {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((digit) => (
               <button
@@ -497,7 +522,7 @@ export default function PersonalVault() {
                     setPinInput((prev) => prev + digit);
                   }
                 }}
-                className="h-14 sm:h-12 rounded-2xl bg-[#FFFCF7] dark:bg-[#111F38] hover:bg-[#FAF3E3] dark:hover:bg-[#162746] border border-[#F5E6C8] dark:border-slate-800 hover:border-[#1E5AA8]/40 dark:hover:border-[#F58220]/40 text-[#1E5AA8] dark:text-slate-100 font-bold text-lg active:scale-95 transition-all flex items-center justify-center shadow-sm hover:shadow whitespace-nowrap shrink-0"
+                className="h-14 sm:h-12 rounded-2xl bg-white/70 dark:bg-[#162746]/70 hover:bg-white dark:hover:bg-[#1e345e] backdrop-blur-md border border-white/80 dark:border-white/10 hover:border-[#1E5AA8]/40 dark:hover:border-sky-400/40 text-[#1E5AA8] dark:text-slate-100 font-bold text-lg active:scale-95 active:bg-[#F5E6C8]/60 transition-all flex items-center justify-center shadow-[0_4px_12px_rgba(0,0,0,0.04),inset_0_1px_0_rgba(255,255,255,0.9)] dark:shadow-[0_4px_12px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.1)] whitespace-nowrap shrink-0"
               >
                 {digit}
               </button>
@@ -505,7 +530,7 @@ export default function PersonalVault() {
             <button
               type="button"
               onClick={() => setPinInput('')}
-              className="h-14 sm:h-12 rounded-2xl bg-[#FAF3E3] dark:bg-[#0B1528] hover:bg-[#F5E6C8]/60 dark:hover:bg-[#162746] border border-[#F5E6C8] dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:text-[#F58220] dark:hover:text-[#F58220] text-xs font-semibold active:scale-95 transition-all flex items-center justify-center shadow-sm whitespace-nowrap shrink-0"
+              className="h-14 sm:h-12 rounded-2xl bg-[#FAF3E3]/60 dark:bg-[#0B1528]/80 hover:bg-[#F5E6C8] dark:hover:bg-[#162746] border border-[#F5E6C8] dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:text-[#F58220] dark:hover:text-[#F58220] text-xs font-bold active:scale-95 transition-all flex items-center justify-center shadow-xs whitespace-nowrap shrink-0"
             >
               Xóa hết
             </button>
@@ -516,20 +541,20 @@ export default function PersonalVault() {
                   setPinInput((prev) => prev + '0');
                 }
               }}
-              className="h-14 sm:h-12 rounded-2xl bg-[#FFFCF7] dark:bg-[#111F38] hover:bg-[#FAF3E3] dark:hover:bg-[#162746] border border-[#F5E6C8] dark:border-slate-800 hover:border-[#1E5AA8]/40 dark:hover:border-[#F58220]/40 text-[#1E5AA8] dark:text-slate-100 font-bold text-lg active:scale-95 transition-all flex items-center justify-center shadow-sm hover:shadow whitespace-nowrap shrink-0"
+              className="h-14 sm:h-12 rounded-2xl bg-white/70 dark:bg-[#162746]/70 hover:bg-white dark:hover:bg-[#1e345e] backdrop-blur-md border border-white/80 dark:border-white/10 hover:border-[#1E5AA8]/40 dark:hover:border-sky-400/40 text-[#1E5AA8] dark:text-slate-100 font-bold text-lg active:scale-95 active:bg-[#F5E6C8]/60 transition-all flex items-center justify-center shadow-[0_4px_12px_rgba(0,0,0,0.04),inset_0_1px_0_rgba(255,255,255,0.9)] dark:shadow-[0_4px_12px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.1)] whitespace-nowrap shrink-0"
             >
               0
             </button>
             <button
               type="button"
               onClick={() => setPinInput((prev) => prev.slice(0, -1))}
-              className="h-14 sm:h-12 rounded-2xl bg-[#FAF3E3] dark:bg-[#0B1528] hover:bg-[#F5E6C8]/60 dark:hover:bg-[#162746] border border-[#F5E6C8] dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:text-[#F58220] dark:hover:text-[#F58220] text-xs font-semibold active:scale-95 transition-all flex items-center justify-center shadow-sm whitespace-nowrap shrink-0"
+              className="h-14 sm:h-12 rounded-2xl bg-[#FAF3E3]/60 dark:bg-[#0B1528]/80 hover:bg-[#F5E6C8] dark:hover:bg-[#162746] border border-[#F5E6C8] dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:text-[#F58220] dark:hover:text-[#F58220] text-xs font-bold active:scale-95 transition-all flex items-center justify-center shadow-xs whitespace-nowrap shrink-0"
             >
               Xóa ký tự
             </button>
           </div>
 
-          {/* Unlock Submit Button (Sunset Orange) */}
+          {/* Unlock Submit Button */}
           <button
             onClick={() => handleVerifyPin()}
             disabled={verifyingPin || pinInput.length < 4}
@@ -547,10 +572,10 @@ export default function PersonalVault() {
 
           {/* Security Notice (Zero Leaks) */}
           <div className="mt-5 pt-4 border-t border-[#F5E6C8]/60 dark:border-slate-800 flex items-center justify-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400 font-medium">
-            <ShieldCheck className="w-3.5 h-3.5 text-[#1E5AA8] dark:text-blue-400" />
+            <ShieldCheck className="w-3.5 h-3.5 text-[#1E5AA8] dark:text-sky-400" />
             <span>Mã hóa bảo mật cấp cao với xác thực hai lớp</span>
           </div>
-        </motion.div>
+        </GlassCard>
       </div>
     );
   }
@@ -560,43 +585,80 @@ export default function PersonalVault() {
   // ==========================================
   return (
     <div className="space-y-6">
-      {/* Top Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      {/* Dismissible Error Banner */}
+      <AnimatePresence>
+        {errorMessage && (
+          <motion.div
+            initial={{ opacity: 0, y: -8, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -8, scale: 0.98 }}
+            className="rounded-2xl p-4 bg-rose-500/10 dark:bg-rose-950/40 border border-rose-500/30 dark:border-rose-500/50 backdrop-blur-md flex items-center justify-between gap-3 text-rose-800 dark:text-rose-200 text-sm shadow-sm"
+            role="alert"
+          >
+            <div className="flex items-center gap-2.5 min-w-0">
+              <AlertCircle className="w-5 h-5 text-rose-600 dark:text-rose-400 shrink-0" />
+              <span className="truncate font-medium">{errorMessage}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setErrorMessage(null)}
+              className="p-1 rounded-lg hover:bg-rose-500/20 text-rose-600 dark:text-rose-300 transition-colors shrink-0"
+              aria-label="Đóng thông báo lỗi"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Top Header: Frosted Glass Panel */}
+      <div className="glass-panel rounded-3xl p-6 sm:p-7 relative overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#1E5AA8] dark:text-slate-100 flex items-center gap-3">
+          <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+            <span className="text-xs uppercase font-mono tracking-widest text-[#F58220] dark:text-amber-400 font-bold bg-[#F58220]/10 dark:bg-[#F58220]/20 border border-[#F58220]/20 dark:border-[#F58220]/40 px-2.5 py-0.5 rounded-md whitespace-nowrap shrink-0">
+              Bảo mật 2 Lớp (PIN)
+            </span>
+            <span className="w-1.5 h-1.5 rounded-full bg-[#1E5AA8] shrink-0" />
+            <span className="text-xs text-slate-600 dark:text-slate-400 font-medium whitespace-nowrap">
+              AES-GCM Key Vault & Credentials
+            </span>
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100 flex items-center gap-3">
             <img
               src="/icons/3d/shield.png"
               alt="Shield"
-              className="w-9 h-9 object-contain hover:scale-110 hover:-rotate-3 transition-transform duration-300 drop-shadow-md"
+              className="w-9 h-9 sm:w-10 sm:h-10 object-contain hover:scale-110 hover:-rotate-3 transition-transform duration-300 drop-shadow-md shrink-0"
             />
-            Kho Lưu trữ Cá nhân (Personal Vault)
+            <span className="min-w-0 break-words">Kho Lưu trữ Cá nhân</span>
           </h1>
-          <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+          <p className="text-sm text-slate-600 dark:text-slate-300 mt-1 max-w-xl">
             Lưu trữ mật khẩu, khóa bí mật API, ghi chú nhạy cảm và thẻ ngân hàng với mã PIN bảo vệ 2 lớp
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5 self-start md:self-auto">
+        <div className="flex items-center gap-2.5 self-start md:self-auto flex-wrap">
           <button
             onClick={handleOpenCreate}
-            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#F58220] to-[#E06D10] hover:from-[#E06D10] hover:to-[#C95B07] text-white font-medium shadow-md shadow-[#F58220]/20 active:scale-95 transition-all text-sm whitespace-nowrap shrink-0"
+            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#F58220] to-[#E06D10] hover:from-[#E06D10] hover:to-[#C95B07] text-white font-semibold shadow-md shadow-[#F58220]/20 active:scale-95 transition-all text-sm whitespace-nowrap shrink-0"
           >
-            <Plus className="w-4 h-4" />
+            <Plus className="w-4 h-4 stroke-[2.5]" />
             <span>Thêm mục mới</span>
           </button>
 
           <button
             onClick={() => setIsChangePinOpen(true)}
-            className="p-2.5 rounded-xl bg-[#FFFCF7] dark:bg-[#111F38] hover:bg-[#FAF3E3] dark:hover:bg-[#162746] text-[#1E5AA8] dark:text-slate-200 border border-[#F5E6C8] dark:border-slate-800 shadow-sm transition-colors whitespace-nowrap shrink-0"
+            className="p-2.5 rounded-xl bg-[#FFFCF7]/90 dark:bg-[#111F38]/90 hover:bg-[#FAF3E3] dark:hover:bg-[#162746] text-[#1E5AA8] dark:text-slate-200 border border-[#F5E6C8] dark:border-slate-800 shadow-sm transition-colors whitespace-nowrap shrink-0"
             title="Đổi mã PIN cấp 2"
+            aria-label="Đổi mã PIN bảo vệ"
           >
             <Settings className="w-4 h-4" />
           </button>
 
           <button
             onClick={handleLockVault}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-[#FAF3E3] dark:bg-[#111F38] hover:bg-[#F5E6C8]/60 dark:hover:bg-[#162746] text-[#1E5AA8] dark:text-slate-200 border border-[#F5E6C8] dark:border-slate-800 shadow-sm text-sm font-medium transition-colors whitespace-nowrap shrink-0"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-[#FAF3E3]/80 dark:bg-[#111F38]/90 hover:bg-[#F5E6C8] dark:hover:bg-[#162746] text-[#1E5AA8] dark:text-slate-200 border border-[#F5E6C8] dark:border-slate-800 shadow-sm text-sm font-semibold transition-colors whitespace-nowrap shrink-0"
             title="Khóa ngay lập tức"
+            aria-label="Khóa kho bảo mật"
           >
             <Lock className="w-4 h-4" />
             <span>Khóa lại</span>
@@ -604,23 +666,23 @@ export default function PersonalVault() {
         </div>
       </div>
 
-      {/* Quick Stats Grid */}
+      {/* Quick Stats Grid: Frosted Glass Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-3">
         <button
           onClick={() => {
             setSelectedCategory('all');
             setShowFavoritesOnly(false);
           }}
-          className={`p-3.5 rounded-2xl border text-left transition-all ${
+          className={`glass-card p-4 rounded-2xl text-left transition-all ${
             selectedCategory === 'all' && !showFavoritesOnly
-              ? 'bg-[#F5E6C8]/60 dark:bg-[#1E5AA8]/30 border-[#1E5AA8] ring-2 ring-[#1E5AA8]/20 shadow-md'
-              : 'bg-[#FFFCF7] dark:bg-[#111F38] border-[#F5E6C8] dark:border-slate-800 hover:border-[#1E5AA8]/30 dark:hover:border-slate-700 shadow-sm'
+              ? 'border-[#1E5AA8] dark:border-sky-400 ring-2 ring-[#1E5AA8]/20 shadow-md'
+              : 'hover:border-[#1E5AA8]/30 dark:hover:border-slate-700'
           }`}
         >
           <div className="text-xs text-slate-500 dark:text-slate-400 font-medium whitespace-nowrap">Tất cả mục</div>
-          <div className="text-xl font-bold text-[#1E5AA8] dark:text-slate-100 mt-1 flex items-baseline justify-between">
+          <div className="text-xl font-bold text-[#1E5AA8] dark:text-sky-300 mt-1 flex items-baseline justify-between">
             {stats.total}
-            <Key className="w-4 h-4 text-[#1E5AA8] dark:text-blue-400" />
+            <Key className="w-4 h-4 text-[#1E5AA8] dark:text-sky-400" />
           </div>
         </button>
 
@@ -629,16 +691,16 @@ export default function PersonalVault() {
             setSelectedCategory('credential');
             setShowFavoritesOnly(false);
           }}
-          className={`p-3.5 rounded-2xl border text-left transition-all ${
+          className={`glass-card p-4 rounded-2xl text-left transition-all ${
             selectedCategory === 'credential'
-              ? 'bg-[#F5E6C8]/60 dark:bg-[#1E5AA8]/30 border-[#1E5AA8] ring-2 ring-[#1E5AA8]/20 shadow-md'
-              : 'bg-[#FFFCF7] dark:bg-[#111F38] border-[#F5E6C8] dark:border-slate-800 hover:border-[#1E5AA8]/30 dark:hover:border-slate-700 shadow-sm'
+              ? 'border-[#1E5AA8] dark:border-sky-400 ring-2 ring-[#1E5AA8]/20 shadow-md'
+              : 'hover:border-[#1E5AA8]/30 dark:hover:border-slate-700'
           }`}
         >
           <div className="text-xs text-slate-500 dark:text-slate-400 font-medium whitespace-nowrap">Mật khẩu</div>
-          <div className="text-xl font-bold text-[#1E5AA8] dark:text-slate-100 mt-1 flex items-baseline justify-between">
+          <div className="text-xl font-bold text-[#1E5AA8] dark:text-sky-300 mt-1 flex items-baseline justify-between">
             {stats.credentials}
-            <Key className="w-4 h-4 text-[#1E5AA8] dark:text-blue-400" />
+            <Key className="w-4 h-4 text-[#1E5AA8] dark:text-sky-400" />
           </div>
         </button>
 
@@ -647,14 +709,14 @@ export default function PersonalVault() {
             setSelectedCategory('api_key');
             setShowFavoritesOnly(false);
           }}
-          className={`p-3.5 rounded-2xl border text-left transition-all ${
+          className={`glass-card p-4 rounded-2xl text-left transition-all ${
             selectedCategory === 'api_key'
-              ? 'bg-[#F58220]/15 dark:bg-[#F58220]/25 border-[#F58220] ring-2 ring-[#F58220]/20 shadow-md'
-              : 'bg-[#FFFCF7] dark:bg-[#111F38] border-[#F5E6C8] dark:border-slate-800 hover:border-[#F58220]/30 dark:hover:border-slate-700 shadow-sm'
+              ? 'border-[#F58220] ring-2 ring-[#F58220]/20 shadow-md'
+              : 'hover:border-[#F58220]/30 dark:hover:border-slate-700'
           }`}
         >
           <div className="text-xs text-slate-500 dark:text-slate-400 font-medium whitespace-nowrap">API Keys</div>
-          <div className="text-xl font-bold text-[#F58220] dark:text-[#F58220] mt-1 flex items-baseline justify-between">
+          <div className="text-xl font-bold text-[#F58220] dark:text-amber-400 mt-1 flex items-baseline justify-between">
             {stats.apiKeys}
             <FileCode className="w-4 h-4 text-[#F58220]" />
           </div>
@@ -665,10 +727,10 @@ export default function PersonalVault() {
             setSelectedCategory('secure_note');
             setShowFavoritesOnly(false);
           }}
-          className={`p-3.5 rounded-2xl border text-left transition-all ${
+          className={`glass-card p-4 rounded-2xl text-left transition-all ${
             selectedCategory === 'secure_note'
-              ? 'bg-emerald-50/80 dark:bg-emerald-950/40 border-emerald-500 ring-2 ring-emerald-500/20 shadow-md'
-              : 'bg-[#FFFCF7] dark:bg-[#111F38] border-[#F5E6C8] dark:border-slate-800 hover:border-emerald-300 dark:hover:border-slate-700 shadow-sm'
+              ? 'border-emerald-500 ring-2 ring-emerald-500/20 shadow-md'
+              : 'hover:border-emerald-300 dark:hover:border-slate-700'
           }`}
         >
           <div className="text-xs text-slate-500 dark:text-slate-400 font-medium whitespace-nowrap">Ghi chú mật</div>
@@ -683,10 +745,10 @@ export default function PersonalVault() {
             setShowFavoritesOnly(true);
             setSelectedCategory('all');
           }}
-          className={`p-3.5 rounded-2xl border text-left transition-all ${
+          className={`glass-card p-4 rounded-2xl text-left transition-all ${
             showFavoritesOnly
-              ? 'bg-rose-50/80 dark:bg-rose-950/40 border-rose-500 ring-2 ring-rose-500/20 shadow-md'
-              : 'bg-[#FFFCF7] dark:bg-[#111F38] border-[#F5E6C8] dark:border-slate-800 hover:border-rose-300 dark:hover:border-slate-700 shadow-sm'
+              ? 'border-rose-500 ring-2 ring-rose-500/20 shadow-md'
+              : 'hover:border-rose-300 dark:hover:border-slate-700'
           }`}
         >
           <div className="text-xs text-slate-500 dark:text-slate-400 font-medium whitespace-nowrap">Yêu thích</div>
@@ -697,21 +759,22 @@ export default function PersonalVault() {
         </button>
       </div>
 
-      {/* Filter and Search Bar */}
-      <div className="bg-[#FFFCF7] dark:bg-[#111F38] p-3.5 rounded-2xl border border-[#F5E6C8] dark:border-slate-800 shadow-sm flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
-        <div className="relative flex-1">
+      {/* Filter and Search Bar: Frosted Glass */}
+      <div className="glass-card p-3.5 rounded-2xl flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
+        <div className="relative flex-1 min-w-[200px]">
           <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
             type="text"
-            placeholder="Tìm theo tiêu đề, tên tài khoản hoặc #tag..."
+            placeholder="Tìm theo tiêu đề, tên tài khoản hoặc #thẻ..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 rounded-xl bg-[#FAF3E3]/60 dark:bg-[#0B1528] border border-[#F5E6C8] dark:border-slate-800 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-[#0B1528] focus:outline-none focus:border-[#1E5AA8] focus:ring-2 focus:ring-[#1E5AA8]/15 text-sm transition-all"
+            className="w-full pl-10 pr-8 py-2 rounded-xl bg-[#FAF3E3]/60 dark:bg-[#0B1528] border border-[#F5E6C8] dark:border-slate-800 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-[#0B1528] focus:outline-none focus:border-[#1E5AA8] dark:focus:border-sky-400 focus:ring-2 focus:ring-[#1E5AA8]/20 text-sm transition-all"
           />
           {searchQuery && (
             <button
               onClick={() => setSearchQuery('')}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+              aria-label="Xóa tìm kiếm"
             >
               <X className="w-4 h-4" />
             </button>
@@ -719,16 +782,16 @@ export default function PersonalVault() {
         </div>
 
         {/* Category Pills */}
-        <div className="flex items-center gap-1.5 overflow-x-auto custom-scrollbar pb-1 md:pb-0">
+        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1 md:pb-0">
           <button
             onClick={() => {
               setSelectedCategory('all');
               setShowFavoritesOnly(false);
             }}
-            className={`px-3 py-1.5 rounded-xl text-xs font-medium whitespace-nowrap shrink-0 transition-all ${
+            className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap shrink-0 transition-all ${
               selectedCategory === 'all' && !showFavoritesOnly
-                ? 'bg-[#1E5AA8] text-white shadow-sm shadow-[#1E5AA8]/20'
-                : 'bg-[#FAF3E3] dark:bg-[#0B1528] text-slate-700 dark:text-slate-300 hover:bg-[#F5E6C8]/60 dark:hover:bg-[#162746] border border-[#F5E6C8] dark:border-slate-800'
+                ? 'bg-[#1E5AA8] text-white shadow-sm shadow-[#1E5AA8]/25'
+                : 'bg-[#FAF3E3]/70 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 hover:bg-[#F5E6C8] dark:hover:bg-slate-700 border border-[#F5E6C8] dark:border-slate-700'
             }`}
           >
             Tất cả
@@ -742,8 +805,8 @@ export default function PersonalVault() {
               }}
               className={`px-3 py-1.5 rounded-xl text-xs font-medium whitespace-nowrap shrink-0 transition-all ${
                 selectedCategory === cat && !showFavoritesOnly
-                  ? 'bg-[#1E5AA8] text-white shadow-sm shadow-[#1E5AA8]/20'
-                  : 'bg-[#FAF3E3] dark:bg-[#0B1528] text-slate-700 dark:text-slate-300 hover:bg-[#F5E6C8]/60 dark:hover:bg-[#162746] border border-[#F5E6C8] dark:border-slate-800'
+                  ? 'bg-[#1E5AA8] text-white shadow-sm shadow-[#1E5AA8]/25 font-semibold'
+                  : 'bg-[#FAF3E3]/70 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 hover:bg-[#F5E6C8] dark:hover:bg-slate-700 border border-[#F5E6C8] dark:border-slate-700'
               }`}
             >
               {CATEGORY_MAP[cat].label}
@@ -756,10 +819,13 @@ export default function PersonalVault() {
       {loading && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {[1, 2, 3, 4, 5, 6].map((idx) => (
-            <div key={idx} className="bg-[#FFFCF7] dark:bg-[#111F38] rounded-2xl border border-[#F5E6C8] dark:border-slate-800 p-5 space-y-3 animate-pulse shadow-sm">
-              <div className="h-6 bg-[#FAF3E3] dark:bg-[#0B1528] rounded w-2/3" />
-              <div className="h-4 bg-[#FAF3E3] dark:bg-[#0B1528] rounded w-full" />
-              <div className="h-4 bg-[#FAF3E3] dark:bg-[#0B1528] rounded w-1/2" />
+            <div
+              key={idx}
+              className="glass-card rounded-2xl h-44 border border-white/60 dark:border-white/10 p-5 space-y-3 animate-pulse shadow-sm"
+            >
+              <div className="h-6 bg-slate-200/70 dark:bg-slate-800 rounded w-2/3" />
+              <div className="h-4 bg-slate-200/70 dark:bg-slate-800 rounded w-full" />
+              <div className="h-4 bg-slate-200/70 dark:bg-slate-800 rounded w-1/2" />
             </div>
           ))}
         </div>
@@ -770,20 +836,20 @@ export default function PersonalVault() {
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-[#FFFCF7] dark:bg-[#111F38] p-12 rounded-3xl border border-[#F5E6C8] dark:border-slate-800 shadow-sm text-center max-w-lg mx-auto my-12"
+          className="glass-card p-12 rounded-3xl border border-white/70 dark:border-white/10 text-center max-w-lg mx-auto my-12"
         >
           <img
             src="/icons/3d/lock.png"
             alt="Lock"
             className="w-16 h-16 mx-auto mb-4 hover:scale-110 hover:-rotate-3 transition-transform duration-300 drop-shadow-md"
           />
-          <h3 className="text-lg font-semibold text-[#1E5AA8] dark:text-slate-100 mb-2">Kho bảo mật đang trống</h3>
+          <h3 className="text-lg font-bold text-[#1E5AA8] dark:text-slate-100 mb-2">Kho bảo mật đang trống</h3>
           <p className="text-sm text-slate-600 dark:text-slate-400 mb-6">
             Lưu trữ mật khẩu dịch vụ, OpenAI/Anthropic API keys, tài khoản ngân hàng hoặc ghi chú bí mật tại đây.
           </p>
           <button
             onClick={handleOpenCreate}
-            className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#F58220] to-[#E06D10] hover:from-[#E06D10] hover:to-[#C95B07] text-white font-medium text-sm transition-all shadow-md shadow-[#F58220]/25 whitespace-nowrap shrink-0"
+            className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#F58220] to-[#E06D10] hover:from-[#E06D10] hover:to-[#C95B07] text-white font-semibold text-sm transition-all shadow-md shadow-[#F58220]/25 whitespace-nowrap shrink-0"
           >
             Thêm mục bí mật đầu tiên
           </button>
@@ -792,8 +858,8 @@ export default function PersonalVault() {
 
       {/* Filtered Empty State */}
       {!loading && items.length > 0 && filteredItems.length === 0 && (
-        <div className="bg-[#FFFCF7] dark:bg-[#111F38] p-8 rounded-2xl border border-[#F5E6C8] dark:border-slate-800 shadow-sm text-center max-w-md mx-auto my-8">
-          <p className="text-[#1E5AA8] dark:text-slate-100 font-medium">Không tìm thấy mục bảo mật nào</p>
+        <div className="glass-card p-8 rounded-3xl border border-white/70 dark:border-white/10 text-center max-w-md mx-auto my-8">
+          <p className="text-[#1E5AA8] dark:text-slate-100 font-bold">Không tìm thấy mục bảo mật nào</p>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Hãy điều chỉnh bộ lọc hoặc từ khóa tìm kiếm của bạn.</p>
           <button
             onClick={() => {
@@ -801,14 +867,14 @@ export default function PersonalVault() {
               setShowFavoritesOnly(false);
               setSearchQuery('');
             }}
-            className="mt-4 px-3.5 py-1.5 rounded-xl bg-[#FAF3E3] dark:bg-[#0B1528] text-slate-700 dark:text-slate-300 text-xs font-medium border border-[#F5E6C8] dark:border-slate-800 hover:bg-[#F5E6C8]/60 dark:hover:bg-[#162746] whitespace-nowrap shrink-0"
+            className="mt-4 px-3.5 py-1.5 rounded-xl bg-[#FAF3E3] dark:bg-[#0B1528] text-slate-700 dark:text-slate-300 text-xs font-semibold border border-[#F5E6C8] dark:border-slate-800 hover:bg-[#F5E6C8]/60 whitespace-nowrap shrink-0"
           >
             Đặt lại bộ lọc
           </button>
         </div>
       )}
 
-      {/* Items Grid */}
+      {/* Items Grid: Frosted Glass Cards */}
       {!loading && filteredItems.length > 0 && (
         <div className="max-h-[72vh] overflow-y-auto overscroll-contain custom-scrollbar pr-1">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -832,344 +898,314 @@ export default function PersonalVault() {
         </div>
       )}
 
-      {/* Create / Edit Modal */}
-      <AnimatePresence>
-        {isEditorOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 15 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 15 }}
-              className="bg-[#FFFCF7] dark:bg-[#111F38] w-full max-w-2xl rounded-2xl p-5 sm:p-6 shadow-2xl relative border border-[#F5E6C8] dark:border-slate-800 overflow-hidden flex flex-col max-h-[90dvh] sm:max-h-[88vh] overflow-y-auto overscroll-contain custom-scrollbar"
-            >
-              <div className="flex items-center justify-between pb-4 border-b border-[#F5E6C8]/60 dark:border-slate-800">
-                <h2 className="text-lg font-bold text-[#1E5AA8] dark:text-slate-100 flex items-center gap-2">
-                  <img
-                    src="/icons/3d/key.png"
-                    alt="Key"
-                    className="w-6 h-6 object-contain hover:scale-110 hover:-rotate-3 transition-transform duration-300 drop-shadow-sm"
-                  />
-                  {editingItem ? 'Chỉnh sửa mục bảo mật' : 'Thêm mục bí mật mới'}
-                </h2>
-                <button
-                  onClick={() => setIsEditorOpen(false)}
-                  className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-[#FAF3E3] dark:hover:bg-[#0B1528] transition-all"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
+      {/* Create / Edit Secret Item Modal: ResponsiveModal */}
+      <ResponsiveModal
+        isOpen={isEditorOpen}
+        onClose={() => setIsEditorOpen(false)}
+        title={editingItem ? 'Chỉnh sửa mục bảo mật' : 'Thêm mục bí mật mới'}
+        subtitle="Lưu trữ tài khoản, mật khẩu, API keys hoặc ghi chú mật"
+        icon={
+          <img
+            src="/icons/3d/key.png"
+            alt="Key"
+            className="w-7 h-7 object-contain"
+          />
+        }
+        maxWidth="2xl"
+      >
+        <form onSubmit={handleSaveItem} className="space-y-4">
+          {/* Category & Title */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                Phân loại bảo mật
+              </label>
+              <select
+                value={category}
+                onChange={(e) => setCategory(e.target.value as VaultCategory)}
+                className="w-full px-4 py-2.5 rounded-xl bg-[#FAF3E3]/60 dark:bg-[#0B1528] border border-[#F5E6C8] dark:border-slate-800 text-slate-900 dark:text-slate-100 text-sm focus:bg-white dark:focus:bg-[#0B1528] focus:outline-none focus:border-[#1E5AA8] dark:focus:border-sky-400 focus:ring-2 focus:ring-[#1E5AA8]/15"
+              >
+                {(Object.keys(CATEGORY_MAP) as VaultCategory[]).map((cat) => (
+                  <option key={cat} value={cat} className="bg-white dark:bg-[#0B1528] text-slate-900 dark:text-slate-100">
+                    {CATEGORY_MAP[cat].label}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-              <form onSubmit={handleSaveItem} className="flex-1 overflow-y-auto py-4 space-y-4">
-                {/* Category & Title */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                      Phân loại bảo mật
-                    </label>
-                    <select
-                      value={category}
-                      onChange={(e) => setCategory(e.target.value as VaultCategory)}
-                      className="w-full px-4 py-2.5 rounded-xl bg-[#FAF3E3]/60 dark:bg-[#0B1528] border border-[#F5E6C8] dark:border-slate-800 text-slate-900 dark:text-slate-100 text-sm focus:bg-white dark:focus:bg-[#0B1528] focus:outline-none focus:border-[#1E5AA8] focus:ring-2 focus:ring-[#1E5AA8]/15"
-                    >
-                      {(Object.keys(CATEGORY_MAP) as VaultCategory[]).map((cat) => (
-                        <option key={cat} value={cat} className="bg-white dark:bg-[#0B1528] text-slate-900 dark:text-slate-100">
-                          {CATEGORY_MAP[cat].label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                Tiêu đề <span className="text-[#F58220]">*</span>
+              </label>
+              <input
+                type="text"
+                required
+                placeholder="Ví dụ: Google Account, OpenAI API Key..."
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                className="w-full px-4 py-2.5 rounded-xl bg-[#FAF3E3]/60 dark:bg-[#0B1528] border border-[#F5E6C8] dark:border-slate-800 text-slate-900 dark:text-slate-100 text-sm focus:bg-white dark:focus:bg-[#0B1528] focus:outline-none focus:border-[#1E5AA8] dark:focus:border-sky-400 focus:ring-2 focus:ring-[#1E5AA8]/15"
+              />
+            </div>
+          </div>
 
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                      Tiêu đề <span className="text-[#F58220]">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="Ví dụ: Google Account, OpenAI API Key..."
-                      value={title}
-                      onChange={(e) => setTitle(e.target.value)}
-                      className="w-full px-4 py-2.5 rounded-xl bg-[#FAF3E3]/60 dark:bg-[#0B1528] border border-[#F5E6C8] dark:border-slate-800 text-slate-900 dark:text-slate-100 text-sm focus:bg-white dark:focus:bg-[#0B1528] focus:outline-none focus:border-[#1E5AA8] focus:ring-2 focus:ring-[#1E5AA8]/15"
-                    />
-                  </div>
-                </div>
+          {/* Username / Account */}
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+              Tên đăng nhập / Email / Client ID
+            </label>
+            <input
+              type="text"
+              placeholder="email@example.com hoặc username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              className="w-full px-4 py-2.5 rounded-xl bg-[#FAF3E3]/60 dark:bg-[#0B1528] border border-[#F5E6C8] dark:border-slate-800 text-slate-900 dark:text-slate-100 text-sm focus:bg-white dark:focus:bg-[#0B1528] focus:outline-none focus:border-[#1E5AA8] dark:focus:border-sky-400 focus:ring-2 focus:ring-[#1E5AA8]/15"
+            />
+          </div>
 
-                {/* Username / Account */}
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                    Tên đăng nhập / Email / Client ID
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="email@example.com hoặc username"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl bg-[#FAF3E3]/60 dark:bg-[#0B1528] border border-[#F5E6C8] dark:border-slate-800 text-slate-900 dark:text-slate-100 text-sm focus:bg-white dark:focus:bg-[#0B1528] focus:outline-none focus:border-[#1E5AA8] focus:ring-2 focus:ring-[#1E5AA8]/15"
-                  />
-                </div>
+          {/* Secret Value & Password Generator */}
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                Mật khẩu / Khóa bí mật (Secret Value)
+              </label>
+              <button
+                type="button"
+                onClick={() => setSecretValue(generateStrongPassword(20))}
+                className="text-xs text-[#1E5AA8] dark:text-sky-300 hover:text-[#F58220] dark:hover:text-[#F58220] flex items-center gap-1 font-semibold transition-colors"
+              >
+                <Sparkles className="w-3.5 h-3.5" /> Tạo mật khẩu mạnh
+              </button>
+            </div>
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="••••••••••••••••••••"
+                value={secretValue}
+                onChange={(e) => setSecretValue(e.target.value)}
+                className="w-full px-4 py-2.5 rounded-xl bg-[#FAF3E3]/60 dark:bg-[#0B1528] border border-[#F5E6C8] dark:border-slate-800 text-slate-900 dark:text-slate-100 text-sm font-mono focus:bg-white dark:focus:bg-[#0B1528] focus:outline-none focus:border-[#1E5AA8] dark:focus:border-sky-400 focus:ring-2 focus:ring-[#1E5AA8]/15 pr-10"
+              />
+            </div>
+          </div>
 
-                {/* Secret Value & Password Generator */}
-                <div>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
-                      Mật khẩu / Khóa bí mật (Secret Value)
-                    </label>
+          {/* URL / Website */}
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+              Trang web / Dịch vụ (URL)
+            </label>
+            <input
+              type="url"
+              placeholder="https://..."
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              className="w-full px-4 py-2.5 rounded-xl bg-[#FAF3E3]/60 dark:bg-[#0B1528] border border-[#F5E6C8] dark:border-slate-800 text-slate-900 dark:text-slate-100 text-sm focus:bg-white dark:focus:bg-[#0B1528] focus:outline-none focus:border-[#1E5AA8] dark:focus:border-sky-400 focus:ring-2 focus:ring-[#1E5AA8]/15"
+            />
+          </div>
+
+          {/* Notes */}
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+              Ghi chú bảo mật bổ sung
+            </label>
+            <textarea
+              rows={3}
+              placeholder="Mã dự phòng (Backup codes), câu hỏi bảo mật, thông tin chi tiết..."
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              className="w-full px-4 py-2.5 rounded-xl bg-[#FAF3E3]/60 dark:bg-[#0B1528] border border-[#F5E6C8] dark:border-slate-800 text-slate-900 dark:text-slate-100 text-sm focus:bg-white dark:focus:bg-[#0B1528] focus:outline-none focus:border-[#1E5AA8] dark:focus:border-sky-400 focus:ring-2 focus:ring-[#1E5AA8]/15 resize-none"
+            />
+          </div>
+
+          {/* Tags */}
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Thẻ (#tags)</label>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                placeholder="Thêm thẻ (nhấn Enter để thêm)..."
+                value={tagInput}
+                onChange={(e) => setTagInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const val = tagInput.trim().replace(/^#/, '');
+                    if (val && !tags.includes(val)) {
+                      setTags([...tags, val]);
+                      setTagInput('');
+                    }
+                  }
+                }}
+                className="flex-1 px-3.5 py-2 rounded-xl bg-[#FAF3E3]/60 dark:bg-[#0B1528] border border-[#F5E6C8] dark:border-slate-800 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 text-xs focus:bg-white dark:focus:bg-[#0B1528] focus:outline-none focus:border-[#1E5AA8] dark:focus:border-sky-400"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  const val = tagInput.trim().replace(/^#/, '');
+                  if (val && !tags.includes(val)) {
+                    setTags([...tags, val]);
+                    setTagInput('');
+                  }
+                }}
+                className="px-3.5 py-1.5 rounded-xl bg-[#FAF3E3] dark:bg-[#0B1528] hover:bg-[#F5E6C8]/70 dark:hover:bg-[#162746] text-slate-700 dark:text-slate-300 text-xs font-semibold border border-[#F5E6C8] dark:border-slate-800 transition-colors whitespace-nowrap shrink-0"
+              >
+                Thêm
+              </button>
+            </div>
+            {tags.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mt-2">
+                {tags.map((t) => (
+                  <span
+                    key={t}
+                    className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#1E5AA8]/10 dark:bg-[#1E5AA8]/20 border border-[#1E5AA8]/20 dark:border-[#1E5AA8]/40 text-[#1E5AA8] dark:text-sky-300 text-xs font-semibold whitespace-nowrap shrink-0"
+                  >
+                    #{t}
                     <button
                       type="button"
-                      onClick={() => setSecretValue(generateStrongPassword(20))}
-                      className="text-xs text-[#1E5AA8] dark:text-blue-400 hover:text-[#F58220] dark:hover:text-[#F58220] flex items-center gap-1 font-medium transition-colors"
+                      onClick={() => setTags(tags.filter((x) => x !== t))}
+                      className="hover:text-rose-500 ml-0.5"
                     >
-                      <Sparkles className="w-3.5 h-3.5" /> Tạo mật khẩu mạnh
+                      <X className="w-3 h-3" />
                     </button>
-                  </div>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      placeholder="••••••••••••••••••••"
-                      value={secretValue}
-                      onChange={(e) => setSecretValue(e.target.value)}
-                      className="w-full px-4 py-2.5 rounded-xl bg-[#FAF3E3]/60 dark:bg-[#0B1528] border border-[#F5E6C8] dark:border-slate-800 text-slate-900 dark:text-slate-100 text-sm font-mono focus:bg-white dark:focus:bg-[#0B1528] focus:outline-none focus:border-[#1E5AA8] focus:ring-2 focus:ring-[#1E5AA8]/15 pr-10"
-                    />
-                  </div>
-                </div>
-
-                {/* URL / Website */}
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                    Trang web / Dịch vụ (URL)
-                  </label>
-                  <input
-                    type="url"
-                    placeholder="https://..."
-                    value={url}
-                    onChange={(e) => setUrl(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl bg-[#FAF3E3]/60 dark:bg-[#0B1528] border border-[#F5E6C8] dark:border-slate-800 text-slate-900 dark:text-slate-100 text-sm focus:bg-white dark:focus:bg-[#0B1528] focus:outline-none focus:border-[#1E5AA8] focus:ring-2 focus:ring-[#1E5AA8]/15"
-                  />
-                </div>
-
-                {/* Notes */}
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                    Ghi chú bảo mật bổ sung
-                  </label>
-                  <textarea
-                    rows={3}
-                    placeholder="Mã dự phòng (Backup codes), câu hỏi bảo mật, thông tin chi tiết..."
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl bg-[#FAF3E3]/60 dark:bg-[#0B1528] border border-[#F5E6C8] dark:border-slate-800 text-slate-900 dark:text-slate-100 text-sm focus:bg-white dark:focus:bg-[#0B1528] focus:outline-none focus:border-[#1E5AA8] focus:ring-2 focus:ring-[#1E5AA8]/15 resize-none"
-                  />
-                </div>
-
-                {/* Tags */}
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Thẻ (#tags)</label>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      placeholder="Thêm thẻ (nhấn Enter để thêm)..."
-                      value={tagInput}
-                      onChange={(e) => setTagInput(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault();
-                          const val = tagInput.trim().replace(/^#/, '');
-                          if (val && !tags.includes(val)) {
-                            setTags([...tags, val]);
-                            setTagInput('');
-                          }
-                        }
-                      }}
-                      className="flex-1 px-3.5 py-2 rounded-xl bg-[#FAF3E3]/60 dark:bg-[#0B1528] border border-[#F5E6C8] dark:border-slate-800 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 text-xs focus:bg-white dark:focus:bg-[#0B1528] focus:outline-none focus:border-[#1E5AA8]"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const val = tagInput.trim().replace(/^#/, '');
-                        if (val && !tags.includes(val)) {
-                          setTags([...tags, val]);
-                          setTagInput('');
-                        }
-                      }}
-                      className="px-3.5 py-1.5 rounded-xl bg-[#FAF3E3] dark:bg-[#0B1528] hover:bg-[#F5E6C8]/70 dark:hover:bg-[#162746] text-slate-700 dark:text-slate-300 text-xs font-medium border border-[#F5E6C8] dark:border-slate-800 transition-colors whitespace-nowrap shrink-0"
-                    >
-                      Thêm
-                    </button>
-                  </div>
-                  {tags.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5 mt-2">
-                      {tags.map((t) => (
-                        <span
-                          key={t}
-                          className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#FAF3E3] dark:bg-[#0B1528] border border-[#F5E6C8] dark:border-slate-800 text-[#1E5AA8] dark:text-blue-400 text-xs font-medium whitespace-nowrap shrink-0"
-                        >
-                          #{t}
-                          <button
-                            type="button"
-                            onClick={() => setTags(tags.filter((x) => x !== t))}
-                            className="hover:text-rose-500 ml-0.5"
-                          >
-                            <X className="w-3 h-3" />
-                          </button>
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* Favorite Toggle */}
-                <div className="pt-2">
-                  <label className="inline-flex items-center gap-2 cursor-pointer select-none">
-                    <input
-                      type="checkbox"
-                      checked={isFavorite}
-                      onChange={(e) => setIsFavorite(e.target.checked)}
-                      className="sr-only"
-                    />
-                    <Star
-                      className={`w-5 h-5 transition-colors ${
-                        isFavorite ? 'text-[#F58220] fill-[#F58220]' : 'text-slate-300'
-                      }`}
-                    />
-                    <span className="text-xs font-medium text-slate-700 dark:text-slate-300">
-                      Đánh dấu mục yêu thích (Thường xuyên sử dụng)
-                    </span>
-                  </label>
-                </div>
-
-                {/* Footer Buttons */}
-                <div className="flex items-center justify-end gap-3 pt-4 border-t border-[#F5E6C8]/60 dark:border-slate-800">
-                  <button
-                    type="button"
-                    onClick={() => setIsEditorOpen(false)}
-                    className="px-4 py-2 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-[#FAF3E3] dark:hover:bg-[#0B1528] text-sm font-medium transition-all whitespace-nowrap shrink-0"
-                  >
-                    Hủy
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={savingItem}
-                    className="px-5 py-2 rounded-xl bg-gradient-to-r from-[#F58220] to-[#E06D10] hover:from-[#E06D10] hover:to-[#C95B07] disabled:opacity-50 text-white font-medium text-sm transition-all shadow-md shadow-[#F58220]/25 flex items-center gap-1.5 whitespace-nowrap shrink-0"
-                  >
-                    {savingItem ? 'Đang lưu...' : editingItem ? 'Cập nhật' : 'Lưu bí mật'}
-                  </button>
-                </div>
-              </form>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-
-      {/* Change PIN Modal */}
-      <AnimatePresence>
-        {isChangePinOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 15 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 15 }}
-              className="bg-[#FFFCF7] dark:bg-[#111F38] w-full max-w-md rounded-2xl p-6 shadow-2xl relative border border-[#F5E6C8] dark:border-slate-800 max-h-[88vh] overflow-y-auto overscroll-contain custom-scrollbar"
-            >
-              <div className="flex items-center justify-between pb-4 border-b border-[#F5E6C8]/60 dark:border-slate-800">
-                <h3 className="text-base font-bold text-[#1E5AA8] dark:text-slate-100 flex items-center gap-2">
-                  <img
-                    src="/icons/3d/key.png"
-                    alt="Key"
-                    className="w-5 h-5 object-contain hover:scale-110 hover:-rotate-3 transition-transform duration-300 drop-shadow-sm"
-                  />
-                  Đổi mã PIN bảo vệ Kho
-                </h3>
-                <button
-                  onClick={() => setIsChangePinOpen(false)}
-                  className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-[#FAF3E3] dark:hover:bg-[#0B1528]"
-                >
-                  <X className="w-5 h-5" />
-                </button>
+                  </span>
+                ))}
               </div>
-
-              <form onSubmit={handleChangePin} className="py-4 space-y-4">
-                {changePinError && (
-                  <div className="p-2.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-xs font-medium">
-                    {changePinError}
-                  </div>
-                )}
-                {changePinSuccess && (
-                  <div className="p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 text-xs font-medium">
-                    {changePinSuccess}
-                  </div>
-                )}
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                    Mã PIN hiện tại <span className="text-[#F58220]">*</span>
-                  </label>
-                  <input
-                    type="password"
-                    maxLength={6}
-                    required
-                    placeholder="Nhập mã PIN hiện tại..."
-                    value={currentPin}
-                    onChange={(e) => setCurrentPin(e.target.value)}
-                    className="w-full px-4 py-2 rounded-xl bg-[#FAF3E3]/60 dark:bg-[#0B1528] border border-[#F5E6C8] dark:border-slate-800 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 text-sm font-mono tracking-widest focus:bg-white dark:focus:bg-[#0B1528] focus:outline-none focus:border-[#1E5AA8] focus:ring-2 focus:ring-[#1E5AA8]/15"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                    Mã PIN mới (4 - 6 số) <span className="text-[#F58220]">*</span>
-                  </label>
-                  <input
-                    type="password"
-                    maxLength={6}
-                    required
-                    placeholder="Nhập mã PIN mới..."
-                    value={newPin}
-                    onChange={(e) => setNewPin(e.target.value)}
-                    className="w-full px-4 py-2 rounded-xl bg-[#FAF3E3]/60 dark:bg-[#0B1528] border border-[#F5E6C8] dark:border-slate-800 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 text-sm font-mono tracking-widest focus:bg-white dark:focus:bg-[#0B1528] focus:outline-none focus:border-[#1E5AA8] focus:ring-2 focus:ring-[#1E5AA8]/15"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                    Xác nhận mã PIN mới <span className="text-[#F58220]">*</span>
-                  </label>
-                  <input
-                    type="password"
-                    maxLength={6}
-                    required
-                    placeholder="Nhập lại mã PIN mới..."
-                    value={confirmPin}
-                    onChange={(e) => setConfirmPin(e.target.value)}
-                    className="w-full px-4 py-2 rounded-xl bg-[#FAF3E3]/60 dark:bg-[#0B1528] border border-[#F5E6C8] dark:border-slate-800 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 text-sm font-mono tracking-widest focus:bg-white dark:focus:bg-[#0B1528] focus:outline-none focus:border-[#1E5AA8] focus:ring-2 focus:ring-[#1E5AA8]/15"
-                  />
-                </div>
-
-                <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#F5E6C8]/60 dark:border-slate-800">
-                  <button
-                    type="button"
-                    onClick={() => setIsChangePinOpen(false)}
-                    className="px-4 py-2 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-[#FAF3E3] dark:hover:bg-[#0B1528] text-xs font-medium whitespace-nowrap shrink-0"
-                  >
-                    Hủy
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={changingPin || !currentPin || !newPin || !confirmPin}
-                    className="px-4 py-2 rounded-xl bg-gradient-to-r from-[#F58220] to-[#E06D10] hover:from-[#E06D10] hover:to-[#C95B07] disabled:opacity-50 text-white font-medium text-xs shadow-md shadow-[#F58220]/25 whitespace-nowrap shrink-0"
-                  >
-                    {changingPin ? 'Đang cập nhật...' : 'Cập nhật mã PIN'}
-                  </button>
-                </div>
-              </form>
-            </motion.div>
+            )}
           </div>
-        )}
-      </AnimatePresence>
+
+          {/* Favorite Toggle */}
+          <div className="pt-2">
+            <label className="inline-flex items-center gap-2 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={isFavorite}
+                onChange={(e) => setIsFavorite(e.target.checked)}
+                className="sr-only"
+              />
+              <Star
+                className={`w-5 h-5 transition-colors ${
+                  isFavorite ? 'text-[#F58220] fill-[#F58220]' : 'text-slate-300'
+                }`}
+              />
+              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                Đánh dấu mục yêu thích (Thường xuyên sử dụng)
+              </span>
+            </label>
+          </div>
+
+          {/* Footer Buttons */}
+          <div className="flex items-center justify-end gap-3 pt-4 border-t border-[#F5E6C8]/60 dark:border-slate-800">
+            <button
+              type="button"
+              onClick={() => setIsEditorOpen(false)}
+              className="px-4 py-2 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-[#FAF3E3] dark:hover:bg-[#0B1528] text-sm font-medium transition-all whitespace-nowrap shrink-0"
+            >
+              Hủy
+            </button>
+            <button
+              type="submit"
+              disabled={savingItem}
+              className="px-5 py-2 rounded-xl bg-gradient-to-r from-[#F58220] to-[#E06D10] hover:from-[#E06D10] hover:to-[#C95B07] disabled:opacity-50 text-white font-semibold text-sm transition-all shadow-md shadow-[#F58220]/25 flex items-center gap-1.5 whitespace-nowrap shrink-0"
+            >
+              {savingItem ? 'Đang lưu...' : editingItem ? 'Cập nhật' : 'Lưu bí mật'}
+            </button>
+          </div>
+        </form>
+      </ResponsiveModal>
+
+      {/* Change PIN Modal: ResponsiveModal */}
+      <ResponsiveModal
+        isOpen={isChangePinOpen}
+        onClose={() => setIsChangePinOpen(false)}
+        title="Đổi mã PIN bảo vệ Kho"
+        subtitle="Mã PIN cấp 2 dùng để mở khóa các mục bảo mật"
+        icon={
+          <img
+            src="/icons/3d/key.png"
+            alt="Key"
+            className="w-7 h-7 object-contain"
+          />
+        }
+        maxWidth="md"
+      >
+        <form onSubmit={handleChangePin} className="space-y-4">
+          {changePinError && (
+            <div className="p-3 rounded-xl bg-rose-500/10 dark:bg-rose-950/40 border border-rose-500/30 text-rose-700 dark:text-rose-300 text-xs font-semibold">
+              {changePinError}
+            </div>
+          )}
+          {changePinSuccess && (
+            <div className="p-3 rounded-xl bg-emerald-500/10 dark:bg-emerald-950/40 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 text-xs font-semibold">
+              {changePinSuccess}
+            </div>
+          )}
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+              Mã PIN hiện tại <span className="text-[#F58220]">*</span>
+            </label>
+            <input
+              type="password"
+              maxLength={6}
+              required
+              placeholder="Nhập mã PIN hiện tại..."
+              value={currentPin}
+              onChange={(e) => setCurrentPin(e.target.value)}
+              className="w-full px-4 py-2.5 rounded-xl bg-[#FAF3E3]/60 dark:bg-[#0B1528] border border-[#F5E6C8] dark:border-slate-800 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 text-sm font-mono tracking-widest focus:bg-white dark:focus:bg-[#0B1528] focus:outline-none focus:border-[#1E5AA8] dark:focus:border-sky-400 focus:ring-2 focus:ring-[#1E5AA8]/15"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+              Mã PIN mới (4 - 6 số) <span className="text-[#F58220]">*</span>
+            </label>
+            <input
+              type="password"
+              maxLength={6}
+              required
+              placeholder="Nhập mã PIN mới..."
+              value={newPin}
+              onChange={(e) => setNewPin(e.target.value)}
+              className="w-full px-4 py-2.5 rounded-xl bg-[#FAF3E3]/60 dark:bg-[#0B1528] border border-[#F5E6C8] dark:border-slate-800 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 text-sm font-mono tracking-widest focus:bg-white dark:focus:bg-[#0B1528] focus:outline-none focus:border-[#1E5AA8] dark:focus:border-sky-400 focus:ring-2 focus:ring-[#1E5AA8]/15"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+              Xác nhận mã PIN mới <span className="text-[#F58220]">*</span>
+            </label>
+            <input
+              type="password"
+              maxLength={6}
+              required
+              placeholder="Nhập lại mã PIN mới..."
+              value={confirmPin}
+              onChange={(e) => setConfirmPin(e.target.value)}
+              className="w-full px-4 py-2.5 rounded-xl bg-[#FAF3E3]/60 dark:bg-[#0B1528] border border-[#F5E6C8] dark:border-slate-800 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 text-sm font-mono tracking-widest focus:bg-white dark:focus:bg-[#0B1528] focus:outline-none focus:border-[#1E5AA8] dark:focus:border-sky-400 focus:ring-2 focus:ring-[#1E5AA8]/15"
+            />
+          </div>
+
+          <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#F5E6C8]/60 dark:border-slate-800">
+            <button
+              type="button"
+              onClick={() => setIsChangePinOpen(false)}
+              className="px-4 py-2 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-[#FAF3E3] dark:hover:bg-[#0B1528] text-xs font-medium whitespace-nowrap shrink-0"
+            >
+              Hủy
+            </button>
+            <button
+              type="submit"
+              disabled={changingPin || !currentPin || !newPin || !confirmPin}
+              className="px-5 py-2 rounded-xl bg-gradient-to-r from-[#F58220] to-[#E06D10] hover:from-[#E06D10] hover:to-[#C95B07] disabled:opacity-50 text-white font-semibold text-xs shadow-md shadow-[#F58220]/25 whitespace-nowrap shrink-0"
+            >
+              {changingPin ? 'Đang cập nhật...' : 'Cập nhật mã PIN'}
+            </button>
+          </div>
+        </form>
+      </ResponsiveModal>
     </div>
   );
 }
 
-// Subcomponent: Individual Vault Item Card
+// Subcomponent: Individual Vault Item Card with Frosted Glass & Tilt
 interface VaultItemCardProps {
   item: VaultItem;
   isVisible: boolean;
@@ -1201,156 +1237,169 @@ function VaultItemCard({
       initial={{ opacity: 0, y: 15 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.95 }}
-      onClick={onEdit}
-      className="bg-[#FFFCF7] dark:bg-[#111F38] rounded-2xl p-5 border border-[#F5E6C8] dark:border-slate-800 hover:border-[#1E5AA8]/40 dark:hover:border-slate-700 cursor-pointer flex flex-col justify-between group transition-all duration-300 shadow-sm hover:shadow-md hover:-translate-y-0.5"
+      className="h-full"
     >
-      <div>
-        {/* Top Header */}
-        <div className="flex items-start justify-between gap-3 mb-3">
-          <div className="flex items-center gap-3 min-w-0">
-            <div className={`p-2 rounded-xl border ${catConfig.color} group-hover:scale-105 transition-transform flex items-center justify-center shrink-0`}>
-              <img
-                src={catConfig.icon3d}
-                alt={catConfig.label}
-                className="w-5 h-5 object-contain hover:scale-110 hover:-rotate-3 transition-transform duration-300 drop-shadow-sm"
-              />
+      <GlassCard
+        onClick={onEdit}
+        tilt={true}
+        glowColor="sapphire"
+        className="h-full flex flex-col justify-between group transition-all duration-300 hover:-translate-y-1 border border-white/70 dark:border-white/10"
+        padding="p-5"
+      >
+        <div>
+          {/* Top Header */}
+          <div className="flex items-start justify-between gap-3 mb-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className={`p-2 rounded-xl border ${catConfig.color} group-hover:scale-105 transition-transform flex items-center justify-center shrink-0`}>
+                <img
+                  src={catConfig.icon3d}
+                  alt={catConfig.label}
+                  className="w-5 h-5 object-contain hover:scale-110 hover:-rotate-3 transition-transform duration-300 drop-shadow-sm"
+                />
+              </div>
+              <div className="min-w-0">
+                <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 block truncate whitespace-nowrap">
+                  {catConfig.label}
+                </span>
+                <h3 className="font-bold text-[#1E5AA8] dark:text-slate-100 text-sm sm:text-base leading-snug truncate group-hover:text-[#F58220] transition-colors min-w-0 break-words">
+                  {item.title}
+                </h3>
+              </div>
             </div>
-            <div className="min-w-0">
-              <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 block truncate whitespace-nowrap">
-                {catConfig.label}
-              </span>
-              <h3 className="font-bold text-[#1E5AA8] dark:text-slate-100 text-sm sm:text-base leading-snug truncate group-hover:text-[#F58220] transition-colors min-w-0 break-words">
-                {item.title}
-              </h3>
-            </div>
-          </div>
 
-          <button
-            type="button"
-            onClick={onToggleFavorite}
-            className="p-1 rounded-lg text-slate-300 hover:text-[#F58220] transition-colors shrink-0"
-            title={item.isFavorite ? 'Bỏ yêu thích' : 'Yêu thích'}
-          >
-            <Star
-              className={`w-4 h-4 ${
-                item.isFavorite ? 'text-[#F58220] fill-[#F58220]' : ''
-              }`}
-            />
-          </button>
-        </div>
-
-        {/* Username / Account */}
-        {item.username && (
-          <div className="flex items-center justify-between text-xs bg-[#FAF3E3]/60 dark:bg-[#0B1528] rounded-xl px-3 py-2 mb-2 border border-[#F5E6C8] dark:border-slate-800">
-            <span className="text-slate-800 dark:text-slate-200 truncate max-w-[200px] font-medium">{item.username}</span>
             <button
               type="button"
-              onClick={(e) => onCopy(item.username, `user-${item.id}`, e)}
-              className="text-slate-400 hover:text-[#1E5AA8] dark:hover:text-blue-400 transition-colors ml-2 shrink-0"
-              title="Sao chép tên đăng nhập"
+              onClick={onToggleFavorite}
+              className="p-1.5 rounded-lg text-slate-300 dark:text-slate-600 hover:text-[#F58220] transition-colors shrink-0"
+              title={item.isFavorite ? 'Bỏ yêu thích' : 'Yêu thích'}
+              aria-label={item.isFavorite ? 'Bỏ yêu thích' : 'Yêu thích'}
             >
-              {isCopiedUsername ? (
-                <Check className="w-3.5 h-3.5 text-emerald-600" />
-              ) : (
-                <Copy className="w-3.5 h-3.5" />
-              )}
+              <Star
+                className={`w-4 h-4 ${
+                  item.isFavorite ? 'text-[#F58220] fill-[#F58220]' : ''
+                }`}
+              />
             </button>
           </div>
-        )}
 
-        {/* Secret Value field */}
-        {item.secretValue && (
-          <div className="flex items-center justify-between text-xs bg-[#FAF3E3]/60 dark:bg-[#0B1528] rounded-xl px-3 py-2 mb-2 border border-[#F5E6C8] dark:border-slate-800 font-mono">
-            <span className="text-slate-900 dark:text-slate-100 font-semibold truncate max-w-[190px]">
-              {isVisible ? item.secretValue : '••••••••••••••••'}
-            </span>
-            <div className="flex items-center gap-1.5 ml-2 shrink-0">
+          {/* Username / Account */}
+          {item.username && (
+            <div className="flex items-center justify-between text-xs bg-[#FAF3E3]/60 dark:bg-[#0B1528] rounded-xl px-3 py-2 mb-2 border border-[#F5E6C8] dark:border-slate-800">
+              <span className="text-slate-800 dark:text-slate-200 truncate max-w-[200px] font-medium">{item.username}</span>
               <button
                 type="button"
-                onClick={onToggleVisibility}
-                className="text-slate-400 hover:text-[#1E5AA8] dark:hover:text-blue-400 transition-colors"
-                title={isVisible ? 'Ẩn bí mật' : 'Hiển thị bí mật'}
+                onClick={(e) => onCopy(item.username, `user-${item.id}`, e)}
+                className="text-slate-400 hover:text-[#1E5AA8] dark:hover:text-sky-300 transition-colors ml-2 shrink-0 p-1"
+                title="Sao chép tên đăng nhập"
+                aria-label="Sao chép tên đăng nhập"
               >
-                {isVisible ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-              </button>
-              <button
-                type="button"
-                onClick={(e) => onCopy(item.secretValue, `secret-${item.id}`, e)}
-                className="text-slate-400 hover:text-[#1E5AA8] dark:hover:text-blue-400 transition-colors"
-                title="Sao chép mật khẩu / bí mật"
-              >
-                {isCopiedSecret ? (
-                  <Check className="w-3.5 h-3.5 text-emerald-600" />
+                {isCopiedUsername ? (
+                  <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                 ) : (
                   <Copy className="w-3.5 h-3.5" />
                 )}
               </button>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Notes preview if no credentials */}
-        {!item.username && !item.secretValue && item.notes && (
-          <p className="text-xs text-slate-600 dark:text-slate-300 line-clamp-3 mb-2 font-mono bg-[#FAF3E3]/60 dark:bg-[#0B1528] border border-[#F5E6C8]/60 dark:border-slate-800 p-2.5 rounded-xl min-w-0 break-words">
-            {item.notes}
-          </p>
-        )}
-
-        {/* Tags */}
-        {item.tags && item.tags.length > 0 && (
-          <div className="flex flex-wrap gap-1 mb-2 pt-1">
-            {item.tags.slice(0, 3).map((tag) => (
-              <span
-                key={tag}
-                className="px-2 py-0.5 rounded bg-[#FAF3E3] dark:bg-[#0B1528] border border-[#F5E6C8] dark:border-slate-800 text-[#1E5AA8] dark:text-blue-400 text-[10px] font-medium whitespace-nowrap shrink-0"
-              >
-                #{tag}
+          {/* Secret Value field: Masked by Default */}
+          {item.secretValue && (
+            <div className="flex items-center justify-between text-xs bg-[#FAF3E3]/60 dark:bg-[#0B1528] rounded-xl px-3 py-2 mb-2 border border-[#F5E6C8] dark:border-slate-800 font-mono">
+              <span className="text-slate-900 dark:text-slate-100 font-semibold truncate max-w-[190px]">
+                {isVisible ? item.secretValue : '••••••••••••••••'}
               </span>
-            ))}
-          </div>
-        )}
-      </div>
+              <div className="flex items-center gap-1.5 ml-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={onToggleVisibility}
+                  className="text-slate-400 hover:text-[#1E5AA8] dark:hover:text-sky-300 transition-colors p-1"
+                  title={isVisible ? 'Ẩn bí mật' : 'Hiển thị bí mật'}
+                  aria-label={isVisible ? 'Ẩn bí mật' : 'Hiển thị bí mật'}
+                >
+                  {isVisible ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => onCopy(item.secretValue, `secret-${item.id}`, e)}
+                  className="text-slate-400 hover:text-[#1E5AA8] dark:hover:text-sky-300 transition-colors p-1"
+                  title="Sao chép mật khẩu / bí mật"
+                  aria-label="Sao chép bí mật"
+                >
+                  {isCopiedSecret ? (
+                    <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                  ) : (
+                    <Copy className="w-3.5 h-3.5" />
+                  )}
+                </button>
+              </div>
+            </div>
+          )}
 
-      {/* Card Footer */}
-      <div className="pt-3 border-t border-[#F5E6C8]/60 dark:border-slate-800 flex items-center justify-between text-xs text-slate-400 dark:text-slate-500">
-        <div className="flex items-center gap-1.5 truncate max-w-[180px] min-w-0">
-          {item.url ? (
-            <a
-              href={item.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={(e) => e.stopPropagation()}
-              className="text-[#1E5AA8] dark:text-blue-400 hover:text-[#F58220] hover:underline flex items-center gap-1 text-[11px] truncate font-medium"
-            >
-              <ExternalLink className="w-3 h-3 flex-shrink-0" />
-              <span className="truncate">{item.url.replace(/^https?:\/\//, '')}</span>
-            </a>
-          ) : (
-            <span className="text-[11px] text-slate-400 dark:text-slate-500 whitespace-nowrap">
-              {new Date(item.createdAt).toLocaleDateString('vi-VN')}
-            </span>
+          {/* Notes preview if no credentials */}
+          {!item.username && !item.secretValue && item.notes && (
+            <p className="text-xs text-slate-600 dark:text-slate-300 line-clamp-3 mb-2 font-mono bg-[#FAF3E3]/60 dark:bg-[#0B1528] border border-[#F5E6C8]/60 dark:border-slate-800 p-2.5 rounded-xl min-w-0 break-words">
+              {item.notes}
+            </p>
+          )}
+
+          {/* Tags */}
+          {item.tags && item.tags.length > 0 && (
+            <div className="flex flex-wrap gap-1 mb-2 pt-1">
+              {item.tags.slice(0, 3).map((tag) => (
+                <span
+                  key={tag}
+                  className="px-2 py-0.5 rounded-md bg-[#FAF3E3] dark:bg-[#0B1528] border border-[#F5E6C8] dark:border-slate-800 text-[#1E5AA8] dark:text-sky-300 text-[10px] font-semibold whitespace-nowrap shrink-0"
+                >
+                  #{tag}
+                </span>
+              ))}
+            </div>
           )}
         </div>
 
-        <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
-          <button
-            type="button"
-            onClick={onEdit}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-[#1E5AA8] dark:hover:text-blue-400 hover:bg-[#FAF3E3] dark:hover:bg-[#0B1528] transition-colors"
-            title="Chỉnh sửa"
-          >
-            <Edit3 className="w-3.5 h-3.5" />
-          </button>
-          <button
-            type="button"
-            onClick={onDelete}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
-            title="Xóa mục bí mật"
-          >
-            <Trash2 className="w-3.5 h-3.5" />
-          </button>
+        {/* Card Footer */}
+        <div className="pt-3 border-t border-[#F5E6C8]/60 dark:border-slate-800 flex items-center justify-between text-xs text-slate-400 dark:text-slate-500">
+          <div className="flex items-center gap-1.5 truncate max-w-[180px] min-w-0">
+            {item.url ? (
+              <a
+                href={item.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                className="text-[#1E5AA8] dark:text-sky-300 hover:text-[#F58220] hover:underline flex items-center gap-1 text-[11px] truncate font-medium"
+              >
+                <ExternalLink className="w-3 h-3 flex-shrink-0" />
+                <span className="truncate">{item.url.replace(/^https?:\/\//, '')}</span>
+              </a>
+            ) : (
+              <span className="text-[11px] text-slate-400 dark:text-slate-500 whitespace-nowrap">
+                {new Date(item.createdAt).toLocaleDateString('vi-VN')}
+              </span>
+            )}
+          </div>
+
+          <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
+            <button
+              type="button"
+              onClick={onEdit}
+              className="p-1.5 rounded-lg text-slate-400 hover:text-[#1E5AA8] dark:hover:text-sky-300 hover:bg-[#FAF3E3] dark:hover:bg-[#0B1528] transition-colors"
+              title="Chỉnh sửa"
+              aria-label="Chỉnh sửa mục bí mật"
+            >
+              <Edit3 className="w-3.5 h-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={onDelete}
+              className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
+              title="Xóa mục bí mật"
+              aria-label="Xóa mục bí mật"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
+          </div>
         </div>
-      </div>
+      </GlassCard>
     </motion.div>
   );
 }

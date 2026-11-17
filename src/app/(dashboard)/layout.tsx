@@ -113,12 +113,12 @@ export default function DashboardLayout({
       }}
     >
       <div className="relative min-h-screen bg-[#FAF3E3] dark:bg-[#0B1528] text-foreground flex">
-        {/* Soft, Harmonious Brand Palette Aura Background Orbs */}
-        <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
-          <div className="absolute -top-40 -left-40 w-[36rem] h-[36rem] bg-[#1E5AA8]/12 dark:bg-[#1E5AA8]/20 rounded-full blur-3xl" />
-          <div className="absolute top-1/4 -right-32 w-[32rem] h-[32rem] bg-[#F58220]/15 dark:bg-[#F58220]/15 rounded-full blur-3xl" />
-          <div className="absolute -bottom-40 left-1/4 w-[38rem] h-[38rem] bg-[#F5E6C8]/70 dark:bg-amber-950/20 rounded-full blur-3xl" />
-          <div className="absolute bottom-1/3 right-1/4 w-80 h-80 bg-[#F58220]/10 dark:bg-[#F58220]/10 rounded-full blur-3xl" />
+        {/* Soft, Harmonious Brand Palette Aura Background Orbs (Hidden in Dark Mode) */}
+        <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden dark:hidden">
+          <div className="absolute -top-36 -left-36 w-[42rem] h-[42rem] bg-[#1E5AA8]/18 dark:bg-[#1E5AA8]/8 rounded-full blur-[96px]" />
+          <div className="absolute top-1/4 -right-28 w-[38rem] h-[38rem] bg-[#F58220]/18 dark:bg-[#F58220]/6 rounded-full blur-[96px]" />
+          <div className="absolute -bottom-36 left-1/4 w-[44rem] h-[44rem] bg-[#F5E6C8]/85 dark:bg-[#1E5AA8]/6 rounded-full blur-[110px]" />
+          <div className="absolute bottom-1/3 right-1/4 w-96 h-96 bg-[#F58220]/14 dark:bg-[#F58220]/5 rounded-full blur-[80px]" />
         </div>
 
         {/* Sidebar */}

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   BookOpen,
@@ -18,19 +19,14 @@ import {
   X,
   ChevronLeft,
   ChevronRight,
-  Maximize2,
-  Minimize2,
-  Type,
   Sun,
   Moon,
   Copy,
   Check,
-  Sparkles,
-  ExternalLink,
-  Tag as TagIcon,
-  Eye,
+  AlertCircle,
 } from 'lucide-react';
 import type { Article } from '@/types/lifeos';
+import GlassCard from '@/components/ui/GlassCard';
 
 type ReaderTheme = 'oled' | 'sepia' | 'paper';
 type ReaderFont = 'serif' | 'sans' | 'mono';
@@ -44,11 +40,13 @@ const CATEGORIES = [
   'Tư duy & Triết học',
   'Sách & Trích dẫn',
   'Cuộc sống',
+  'Chung',
 ];
 
 export default function ArticlesStudio() {
   const [articles, setArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'all' | 'unread' | 'reading' | 'completed' | 'favorite'>('all');
   const [selectedCategory, setSelectedCategory] = useState('Tất cả');
   const [searchQuery, setSearchQuery] = useState('');
@@ -62,23 +60,6 @@ export default function ArticlesStudio() {
   const [readingProgress, setReadingProgress] = useState<number>(0);
   const readerScrollRef = useRef<HTMLDivElement>(null);
 
-  // Editor Modal States
-  const [isEditorOpen, setIsEditorOpen] = useState(false);
-  const [editingArticle, setEditingArticle] = useState<Article | null>(null);
-  const [editorTitle, setEditorTitle] = useState('');
-  const [editorSlug, setEditorSlug] = useState('');
-  const [editorCategory, setEditorCategory] = useState('Công nghệ');
-  const [editorExcerpt, setEditorExcerpt] = useState('');
-  const [editorContent, setEditorContent] = useState('');
-  const [editorCoverImage, setEditorCoverImage] = useState('');
-  const [editorReadingTime, setEditorReadingTime] = useState<number>(3);
-  const [editorIsPublic, setEditorIsPublic] = useState(false);
-  const [editorIsFavorite, setEditorIsFavorite] = useState(false);
-  const [editorReadStatus, setEditorReadStatus] = useState<'unread' | 'reading' | 'completed'>('unread');
-  const [editorTags, setEditorTags] = useState<string[]>([]);
-  const [tagInput, setTagInput] = useState('');
-  const [saving, setSaving] = useState(false);
-
   // Copied link toast state
   const [copiedSlug, setCopiedSlug] = useState<string | null>(null);
 
@@ -86,13 +67,17 @@ export default function ArticlesStudio() {
   const fetchArticles = async () => {
     try {
       setLoading(true);
+      setErrorMessage(null);
       const res = await fetch('/api/articles');
       if (res.ok) {
         const data = await res.json();
         setArticles(Array.isArray(data) ? data : data.articles || []);
+      } else {
+        setErrorMessage('Không thể tải danh sách bài viết. Vui lòng thử lại sau.');
       }
     } catch (err) {
       console.error('Lỗi khi tải danh sách bài viết:', err);
+      setErrorMessage('Lỗi kết nối khi tải danh sách bài viết.');
     } finally {
       setLoading(false);
     }
@@ -139,163 +124,93 @@ export default function ArticlesStudio() {
     };
   }, [articles]);
 
-  // Handle Open Create
-  const handleOpenCreate = () => {
-    setEditingArticle(null);
-    setEditorTitle('');
-    setEditorSlug('');
-    setEditorCategory('Công nghệ');
-    setEditorExcerpt('');
-    setEditorContent('');
-    setEditorCoverImage('');
-    setEditorReadingTime(3);
-    setEditorIsPublic(false);
-    setEditorIsFavorite(false);
-    setEditorReadStatus('unread');
-    setEditorTags([]);
-    setTagInput('');
-    setIsEditorOpen(true);
-  };
-
-  // Handle Open Edit
-  const handleOpenEdit = (art: Article) => {
-    setEditingArticle(art);
-    setEditorTitle(art.title);
-    setEditorSlug(art.slug);
-    setEditorCategory(art.category || 'Công nghệ');
-    setEditorExcerpt(art.excerpt || '');
-    setEditorContent(art.content || '');
-    setEditorCoverImage(art.coverImage || '');
-    setEditorReadingTime(art.readingTime || 3);
-    setEditorIsPublic(art.isPublic);
-    setEditorIsFavorite(art.isFavorite);
-    setEditorReadStatus(art.readStatus);
-    setEditorTags([...(art.tags || [])]);
-    setTagInput('');
-    setIsEditorOpen(true);
-  };
-
-  // Auto calculate reading time when content changes
-  const handleContentChange = (val: string) => {
-    setEditorContent(val);
-    const words = val.trim().split(/\s+/).filter(Boolean).length;
-    const estTime = Math.max(1, Math.ceil(words / 200));
-    setEditorReadingTime(estTime);
-  };
-
-  // Auto generate slug from title if not set
-  const handleTitleChange = (val: string) => {
-    setEditorTitle(val);
-    if (!editingArticle) {
-      const generated = val
-        .toLowerCase()
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .replace(/[^a-z0-9 -]/g, '')
-        .replace(/\s+/g, '-')
-        .replace(/-+/g, '-')
-        .replace(/^-+|-+$/g, '');
-      setEditorSlug(generated);
-    }
-  };
-
-  // Save / Update Article
-  const handleSaveArticle = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!editorTitle.trim() || !editorSlug.trim()) return;
-
-    try {
-      setSaving(true);
-      const payload = {
-        title: editorTitle.trim(),
-        slug: editorSlug.trim(),
-        category: editorCategory,
-        excerpt: editorExcerpt.trim() || null,
-        content: editorContent.trim() || null,
-        coverImage: editorCoverImage.trim() || null,
-        readingTime: editorReadingTime,
-        isPublic: editorIsPublic,
-        isFavorite: editorIsFavorite,
-        readStatus: editorReadStatus,
-        tags: editorTags,
-      };
-
-      if (editingArticle) {
-        const res = await fetch(`/api/articles/${editingArticle.id}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        });
-
-        if (res.ok) {
-          const updated = await res.json();
-          setArticles((prev) => prev.map((a) => (a.id === updated.id ? updated : a)));
-          if (readingArticle?.id === updated.id) setReadingArticle(updated);
-          setIsEditorOpen(false);
-        }
-      } else {
-        const res = await fetch('/api/articles', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        });
-
-        if (res.ok) {
-          const created = await res.json();
-          setArticles((prev) => [created, ...prev]);
-          setIsEditorOpen(false);
-        }
-      }
-    } catch (err) {
-      console.error('Lỗi khi lưu bài viết:', err);
-    } finally {
-      setSaving(false);
-    }
-  };
-
   // Toggle Favorite
   const handleToggleFavorite = async (art: Article, e?: React.MouseEvent) => {
     e?.stopPropagation();
+    const previousFav = art.isFavorite;
+    const updatedFav = !previousFav;
+
+    // Optimistic update
+    setArticles((prev) =>
+      prev.map((a) => (a.id === art.id ? { ...a, isFavorite: updatedFav } : a))
+    );
+    if (readingArticle?.id === art.id) {
+      setReadingArticle((prev) => (prev ? { ...prev, isFavorite: updatedFav } : null));
+    }
+
     try {
-      const updatedFav = !art.isFavorite;
       const res = await fetch(`/api/articles/${art.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ isFavorite: updatedFav }),
       });
-      if (res.ok) {
+      if (!res.ok) {
+        // Rollback
         setArticles((prev) =>
-          prev.map((a) => (a.id === art.id ? { ...a, isFavorite: updatedFav } : a))
+          prev.map((a) => (a.id === art.id ? { ...a, isFavorite: previousFav } : a))
         );
         if (readingArticle?.id === art.id) {
-          setReadingArticle((prev) => (prev ? { ...prev, isFavorite: updatedFav } : null));
+          setReadingArticle((prev) => (prev ? { ...prev, isFavorite: previousFav } : null));
         }
+        setErrorMessage('Không thể cập nhật yêu thích.');
       }
     } catch (err) {
       console.error('Lỗi cập nhật yêu thích:', err);
+      setArticles((prev) =>
+        prev.map((a) => (a.id === art.id ? { ...a, isFavorite: previousFav } : a))
+      );
+      if (readingArticle?.id === art.id) {
+        setReadingArticle((prev) => (prev ? { ...prev, isFavorite: previousFav } : null));
+      }
+      setErrorMessage('Lỗi kết nối khi cập nhật yêu thích.');
     }
   };
 
-  // Toggle Public status
+  // Toggle Public status with ROLLBACK and UI ERROR BANNER on failure
   const handleTogglePublic = async (art: Article, e?: React.MouseEvent) => {
     e?.stopPropagation();
+    const previousPublic = art.isPublic;
+    const nextPublic = !previousPublic;
+
+    // Optimistic update
+    setArticles((prev) =>
+      prev.map((a) => (a.id === art.id ? { ...a, isPublic: nextPublic } : a))
+    );
+    if (readingArticle?.id === art.id) {
+      setReadingArticle((prev) => (prev ? { ...prev, isPublic: nextPublic } : null));
+    }
+    setErrorMessage(null);
+
     try {
-      const updatedPublic = !art.isPublic;
       const res = await fetch(`/api/articles/${art.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ isPublic: updatedPublic }),
+        body: JSON.stringify({ isPublic: nextPublic }),
       });
-      if (res.ok) {
+
+      if (!res.ok) {
+        // Rollback state
         setArticles((prev) =>
-          prev.map((a) => (a.id === art.id ? { ...a, isPublic: updatedPublic } : a))
+          prev.map((a) => (a.id === art.id ? { ...a, isPublic: previousPublic } : a))
         );
         if (readingArticle?.id === art.id) {
-          setReadingArticle((prev) => (prev ? { ...prev, isPublic: updatedPublic } : null));
+          setReadingArticle((prev) => (prev ? { ...prev, isPublic: previousPublic } : null));
         }
+        const errData = await res.json().catch(() => null);
+        setErrorMessage(
+          errData?.error || 'Không thể cập nhật trạng thái chia sẻ công khai. Đã hoàn tác.'
+        );
       }
     } catch (err) {
       console.error('Lỗi cập nhật chia sẻ công khai:', err);
+      // Rollback state
+      setArticles((prev) =>
+        prev.map((a) => (a.id === art.id ? { ...a, isPublic: previousPublic } : a))
+      );
+      if (readingArticle?.id === art.id) {
+        setReadingArticle((prev) => (prev ? { ...prev, isPublic: previousPublic } : null));
+      }
+      setErrorMessage('Lỗi kết nối khi cập nhật trạng thái chia sẻ công khai. Đã hoàn tác.');
     }
   };
 
@@ -314,9 +229,12 @@ export default function ArticlesStudio() {
         const updated = await res.json();
         setArticles((prev) => prev.map((a) => (a.id === updated.id ? updated : a)));
         if (readingArticle?.id === updated.id) setReadingArticle(updated);
+      } else {
+        setErrorMessage('Không thể cập nhật trạng thái đọc.');
       }
     } catch (err) {
       console.error('Lỗi cập nhật trạng thái đọc:', err);
+      setErrorMessage('Lỗi kết nối khi cập nhật trạng thái đọc.');
     }
   };
 
@@ -329,9 +247,12 @@ export default function ArticlesStudio() {
       if (res.ok) {
         setArticles((prev) => prev.filter((a) => a.id !== artId));
         if (readingArticle?.id === artId) setReadingArticle(null);
+      } else {
+        setErrorMessage('Không thể xóa bài viết. Vui lòng thử lại.');
       }
     } catch (err) {
       console.error('Lỗi khi xóa bài viết:', err);
+      setErrorMessage('Lỗi kết nối khi xóa bài viết.');
     }
   };
 
@@ -374,9 +295,9 @@ export default function ArticlesStudio() {
       wrapper: 'bg-[#FAF3E3] dark:bg-[#0B1528] text-[#1E293B] dark:text-slate-100',
       header: 'bg-[#FFFCF7]/95 dark:bg-[#111F38]/95 border-[#F5E6C8] dark:border-slate-800 text-[#1E5AA8] dark:text-slate-100 shadow-sm',
       body: 'text-[#2D3748] dark:text-slate-200',
-      accent: 'text-[#1E5AA8] dark:text-blue-400',
+      accent: 'text-[#1E5AA8] dark:text-sky-400',
       meta: 'text-slate-600 dark:text-slate-400',
-      tag: 'bg-[#F5E6C8]/50 dark:bg-[#1E5AA8]/20 border-[#F5E6C8] dark:border-slate-700 text-[#1E5AA8] dark:text-blue-400',
+      tag: 'bg-[#F5E6C8]/50 dark:bg-[#1E5AA8]/20 border-[#F5E6C8] dark:border-slate-700 text-[#1E5AA8] dark:text-sky-300',
       btn: 'bg-[#FFFCF7] dark:bg-[#111F38] hover:bg-[#F5E6C8]/50 dark:hover:bg-[#162746] text-[#1E5AA8] dark:text-slate-100 border-[#F5E6C8] dark:border-slate-800',
     },
     sepia: {
@@ -407,58 +328,94 @@ export default function ArticlesStudio() {
 
   return (
     <div className="space-y-6">
-      {/* Top Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      {/* Dismissible Error Banner */}
+      <AnimatePresence>
+        {errorMessage && (
+          <motion.div
+            initial={{ opacity: 0, y: -8, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -8, scale: 0.98 }}
+            className="rounded-2xl p-4 bg-rose-500/10 dark:bg-rose-950/40 border border-rose-500/30 dark:border-rose-500/50 backdrop-blur-md flex items-center justify-between gap-3 text-rose-800 dark:text-rose-200 text-sm shadow-sm"
+            role="alert"
+          >
+            <div className="flex items-center gap-2.5 min-w-0">
+              <AlertCircle className="w-5 h-5 text-rose-600 dark:text-rose-400 shrink-0" />
+              <span className="truncate font-medium">{errorMessage}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setErrorMessage(null)}
+              className="p-1 rounded-lg hover:bg-rose-500/20 text-rose-600 dark:text-rose-300 transition-colors shrink-0"
+              aria-label="Đóng thông báo lỗi"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Top Header: Frosted Glass Panel with 3D Bookmark */}
+      <div className="glass-panel rounded-3xl p-6 sm:p-7 relative overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#1E5AA8] dark:text-slate-100 flex items-center gap-3">
+          <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+            <span className="text-xs uppercase font-mono tracking-widest text-[#F58220] dark:text-amber-400 font-bold bg-[#F58220]/10 dark:bg-[#F58220]/20 border border-[#F58220]/20 dark:border-[#F58220]/40 px-2.5 py-0.5 rounded-md whitespace-nowrap shrink-0">
+              Kho Tri thức & Bài viết
+            </span>
+            <span className="w-1.5 h-1.5 rounded-full bg-[#1E5AA8] shrink-0" />
+            <span className="text-xs text-slate-600 dark:text-slate-400 font-medium whitespace-nowrap">
+              Chế độ Đọc tập trung & Soạn thảo Chuyên sâu
+            </span>
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100 flex items-center gap-3">
             <img
               src="/icons/3d/bookmark.png"
               alt="Bookmark"
-              className="w-9 h-9 object-contain hover:scale-110 hover:-rotate-3 transition-transform duration-300 drop-shadow-md"
+              className="w-9 h-9 sm:w-10 sm:h-10 object-contain hover:scale-110 hover:-rotate-3 transition-transform duration-300 drop-shadow-md shrink-0"
             />
-            Studio Bài viết & Chế độ Đọc
+            <span className="min-w-0 break-words">Studio Bài viết & Chế độ Đọc</span>
           </h1>
-          <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+          <p className="text-sm text-slate-600 dark:text-slate-300 mt-1 max-w-xl">
             Quản lý kho tri thức, danh sách đọc tập trung và chia sẻ bài viết công khai với link độc lập
           </p>
         </div>
 
-        <button
-          onClick={handleOpenCreate}
-          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#F58220] to-[#E06D10] hover:from-[#E06D10] hover:to-[#C95B07] text-white font-medium shadow-md shadow-[#F58220]/25 active:scale-95 transition-all text-sm self-start md:self-auto whitespace-nowrap shrink-0"
+        {/* Dedicated Full Page Editor Navigation */}
+        <Link
+          href="/articles/new"
+          className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#F58220] to-[#E06D10] hover:from-[#E06D10] hover:to-[#C95B07] text-white font-semibold shadow-md shadow-[#F58220]/25 active:scale-95 transition-all text-sm self-start md:self-auto whitespace-nowrap shrink-0"
         >
-          <Plus className="w-4 h-4" />
+          <Plus className="w-4 h-4 stroke-[2.5]" />
           <span>Viết bài mới</span>
-        </button>
+        </Link>
       </div>
 
-      {/* Reading List Tabs & Quick Stats */}
+      {/* Reading List Tabs & Quick Stats: Frosted Glass Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <button
           onClick={() => setActiveTab('all')}
-          className={`p-3.5 rounded-2xl border text-left transition-all ${
+          className={`glass-card p-4 rounded-2xl text-left transition-all ${
             activeTab === 'all'
-              ? 'bg-[#F5E6C8]/60 dark:bg-[#1E5AA8]/30 border-[#1E5AA8] ring-2 ring-[#1E5AA8]/20 shadow-md'
-              : 'bg-[#FFFCF7] dark:bg-[#111F38] border-[#F5E6C8] dark:border-slate-800 hover:border-[#1E5AA8]/30 dark:hover:border-slate-700 shadow-sm'
+              ? 'border-[#1E5AA8] dark:border-sky-400 ring-2 ring-[#1E5AA8]/20 shadow-md'
+              : 'hover:border-[#1E5AA8]/30 dark:hover:border-slate-700'
           }`}
         >
           <div className="text-xs text-slate-500 dark:text-slate-400 font-medium whitespace-nowrap">Tất cả bài viết</div>
-          <div className="text-xl font-bold text-[#1E5AA8] dark:text-slate-100 mt-1 flex items-baseline justify-between">
+          <div className="text-xl font-bold text-[#1E5AA8] dark:text-sky-300 mt-1 flex items-baseline justify-between">
             {stats.total}
-            <BookMarked className="w-4 h-4 text-[#1E5AA8] dark:text-blue-400" />
+            <BookMarked className="w-4 h-4 text-[#1E5AA8] dark:text-sky-400" />
           </div>
         </button>
 
         <button
           onClick={() => setActiveTab('unread')}
-          className={`p-3.5 rounded-2xl border text-left transition-all ${
+          className={`glass-card p-4 rounded-2xl text-left transition-all ${
             activeTab === 'unread'
-              ? 'bg-[#F5E6C8]/60 dark:bg-[#F58220]/25 border-[#F58220] ring-2 ring-[#F58220]/20 shadow-md'
-              : 'bg-[#FFFCF7] dark:bg-[#111F38] border-[#F5E6C8] dark:border-slate-800 hover:border-[#F58220]/40 dark:hover:border-slate-700 shadow-sm'
+              ? 'border-[#F58220] ring-2 ring-[#F58220]/20 shadow-md'
+              : 'hover:border-[#F58220]/30'
           }`}
         >
-          <div className="text-xs text-slate-500 dark:text-slate-400 font-medium whitespace-nowrap">Chưa đọc (Unread)</div>
-          <div className="text-xl font-bold text-[#F58220] dark:text-[#F58220] mt-1 flex items-baseline justify-between">
+          <div className="text-xs text-slate-500 dark:text-slate-400 font-medium whitespace-nowrap">Chưa đọc</div>
+          <div className="text-xl font-bold text-[#F58220] dark:text-amber-400 mt-1 flex items-baseline justify-between">
             {stats.unread}
             <Clock className="w-4 h-4 text-[#F58220]" />
           </div>
@@ -466,58 +423,59 @@ export default function ArticlesStudio() {
 
         <button
           onClick={() => setActiveTab('reading')}
-          className={`p-3.5 rounded-2xl border text-left transition-all ${
+          className={`glass-card p-4 rounded-2xl text-left transition-all ${
             activeTab === 'reading'
-              ? 'bg-[#F5E6C8]/60 dark:bg-[#1E5AA8]/30 border-[#1E5AA8] ring-2 ring-[#1E5AA8]/20 shadow-md'
-              : 'bg-[#FFFCF7] dark:bg-[#111F38] border-[#F5E6C8] dark:border-slate-800 hover:border-[#1E5AA8]/40 dark:hover:border-slate-700 shadow-sm'
+              ? 'border-sky-500 ring-2 ring-sky-500/20 shadow-md'
+              : 'hover:border-sky-500/30'
           }`}
         >
-          <div className="text-xs text-slate-500 dark:text-slate-400 font-medium whitespace-nowrap">Đang đọc (Reading)</div>
-          <div className="text-xl font-bold text-[#1E5AA8] dark:text-slate-100 mt-1 flex items-baseline justify-between">
+          <div className="text-xs text-slate-500 dark:text-slate-400 font-medium whitespace-nowrap">Đang đọc</div>
+          <div className="text-xl font-bold text-sky-600 dark:text-sky-400 mt-1 flex items-baseline justify-between">
             {stats.reading}
-            <BookOpen className="w-4 h-4 text-[#1E5AA8] dark:text-blue-400" />
+            <BookOpen className="w-4 h-4 text-sky-600 dark:text-sky-400" />
           </div>
         </button>
 
         <button
           onClick={() => setActiveTab('completed')}
-          className={`p-3.5 rounded-2xl border text-left transition-all ${
+          className={`glass-card p-4 rounded-2xl text-left transition-all ${
             activeTab === 'completed'
-              ? 'bg-[#F5E6C8]/60 dark:bg-emerald-950/40 border-emerald-500 ring-2 ring-emerald-500/20 shadow-md'
-              : 'bg-[#FFFCF7] dark:bg-[#111F38] border-[#F5E6C8] dark:border-slate-800 hover:border-emerald-300 dark:hover:border-slate-700 shadow-sm'
+              ? 'border-emerald-500 ring-2 ring-emerald-500/20 shadow-md'
+              : 'hover:border-emerald-500/30'
           }`}
         >
-          <div className="text-xs text-slate-500 dark:text-slate-400 font-medium whitespace-nowrap">Đã xong (Completed)</div>
-          <div className="text-xl font-bold text-emerald-700 dark:text-emerald-400 mt-1 flex items-baseline justify-between">
+          <div className="text-xs text-slate-500 dark:text-slate-400 font-medium whitespace-nowrap">Đã đọc xong</div>
+          <div className="text-xl font-bold text-emerald-600 dark:text-emerald-400 mt-1 flex items-baseline justify-between">
             {stats.completed}
             <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
           </div>
         </button>
       </div>
 
-      {/* Filter and Search Bar */}
-      <div className="bg-[#FFFCF7] dark:bg-[#111F38] p-3.5 rounded-2xl border border-[#F5E6C8] dark:border-slate-800 shadow-sm flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
-        <div className="relative flex-1">
+      {/* Search and Category Filter Bar: Frosted Glass */}
+      <div className="glass-card p-3.5 rounded-2xl flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
+        <div className="relative flex-1 min-w-[200px]">
           <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
             type="text"
             placeholder="Tìm theo tiêu đề, tóm tắt hoặc nội dung..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 rounded-xl bg-[#FAF3E3]/60 dark:bg-[#0B1528] border border-[#F5E6C8] dark:border-slate-800 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-[#0B1528] focus:outline-none focus:border-[#1E5AA8] focus:ring-2 focus:ring-[#1E5AA8]/15 text-sm transition-all"
+            className="w-full pl-10 pr-8 py-2 rounded-xl bg-[#FAF3E3]/60 dark:bg-[#0B1528] border border-[#F5E6C8] dark:border-slate-800 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-[#0B1528] focus:outline-none focus:border-[#1E5AA8] dark:focus:border-sky-400 focus:ring-2 focus:ring-[#1E5AA8]/20 text-sm transition-all"
           />
           {searchQuery && (
             <button
               onClick={() => setSearchQuery('')}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+              aria-label="Xóa tìm kiếm"
             >
               <X className="w-4 h-4" />
             </button>
           )}
         </div>
 
-        {/* Category Pills Carousel */}
-        <div className="flex items-center gap-1.5 overflow-x-auto custom-scrollbar pb-1 md:pb-0">
+        {/* Category Pills */}
+        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1 md:pb-0">
           <span className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1 pl-1 font-medium whitespace-nowrap shrink-0">
             <Filter className="w-3.5 h-3.5" /> Chủ đề:
           </span>
@@ -527,8 +485,8 @@ export default function ArticlesStudio() {
               onClick={() => setSelectedCategory(cat)}
               className={`px-3 py-1.5 rounded-xl text-xs font-medium whitespace-nowrap shrink-0 transition-all ${
                 selectedCategory === cat
-                  ? 'bg-[#1E5AA8] text-white shadow-sm shadow-[#1E5AA8]/20'
-                  : 'bg-[#FAF3E3] dark:bg-[#0B1528] text-slate-700 dark:text-slate-300 hover:bg-[#F5E6C8]/60 dark:hover:bg-[#162746] border border-[#F5E6C8] dark:border-slate-800'
+                  ? 'bg-[#1E5AA8] text-white shadow-sm shadow-[#1E5AA8]/25 font-semibold'
+                  : 'bg-[#FAF3E3]/70 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 hover:bg-[#F5E6C8] dark:hover:bg-slate-700 border border-[#F5E6C8] dark:border-slate-700'
               }`}
             >
               {cat}
@@ -541,11 +499,14 @@ export default function ArticlesStudio() {
       {loading && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {[1, 2, 3, 4, 5, 6].map((idx) => (
-            <div key={idx} className="bg-[#FFFCF7] dark:bg-[#111F38] rounded-2xl border border-[#F5E6C8] dark:border-slate-800 h-80 animate-pulse p-4 space-y-4 shadow-sm">
-              <div className="h-36 bg-[#FAF3E3] dark:bg-[#0B1528] rounded-xl" />
-              <div className="h-5 bg-[#FAF3E3] dark:bg-[#0B1528] rounded w-3/4" />
-              <div className="h-4 bg-[#FAF3E3] dark:bg-[#0B1528] rounded w-full" />
-              <div className="h-4 bg-[#FAF3E3] dark:bg-[#0B1528] rounded w-2/3" />
+            <div
+              key={idx}
+              className="glass-card rounded-3xl h-80 animate-pulse p-4 space-y-4 border border-white/60 dark:border-white/10"
+            >
+              <div className="h-36 bg-slate-200/60 dark:bg-slate-800 rounded-2xl" />
+              <div className="h-5 bg-slate-200/60 dark:bg-slate-800 rounded w-3/4" />
+              <div className="h-4 bg-slate-200/60 dark:bg-slate-800 rounded w-full" />
+              <div className="h-4 bg-slate-200/60 dark:bg-slate-800 rounded w-2/3" />
             </div>
           ))}
         </div>
@@ -556,30 +517,30 @@ export default function ArticlesStudio() {
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-[#FFFCF7] dark:bg-[#111F38] p-12 rounded-3xl border border-[#F5E6C8] dark:border-slate-800 shadow-sm text-center max-w-lg mx-auto my-12"
+          className="glass-card p-12 rounded-3xl border border-white/70 dark:border-white/10 text-center max-w-lg mx-auto my-12"
         >
           <img
             src="/icons/3d/glasses.png"
             alt="Glasses"
             className="w-16 h-16 mx-auto mb-4 hover:scale-110 hover:-rotate-3 transition-transform duration-300 drop-shadow-md"
           />
-          <h3 className="text-lg font-semibold text-[#1E5AA8] dark:text-slate-100 mb-2">Chưa có bài viết nào</h3>
+          <h3 className="text-lg font-bold text-[#1E5AA8] dark:text-slate-100 mb-2">Chưa có bài viết nào</h3>
           <p className="text-sm text-slate-600 dark:text-slate-400 mb-6">
-            Bắt đầu tạo bài viết mới hoặc lưu lại những trang sách tâm đắc để thưởng thức trong Chế độ Đọc tập trung.
+            Bắt đầu tạo bài viết mới trên trang soạn thảo chuyên sâu để thỏa sức sáng tạo và quản lý nội dung dài.
           </p>
-          <button
-            onClick={handleOpenCreate}
-            className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#F58220] to-[#E06D10] hover:from-[#E06D10] hover:to-[#C95B07] text-white font-medium text-sm transition-all shadow-md shadow-[#F58220]/25 whitespace-nowrap shrink-0"
+          <Link
+            href="/articles/new"
+            className="inline-block px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#F58220] to-[#E06D10] hover:from-[#E06D10] hover:to-[#C95B07] text-white font-semibold text-sm transition-all shadow-md shadow-[#F58220]/25 whitespace-nowrap shrink-0"
           >
             Tạo bài viết đầu tiên
-          </button>
+          </Link>
         </motion.div>
       )}
 
       {/* Filtered Empty State */}
       {!loading && articles.length > 0 && filteredArticles.length === 0 && (
-        <div className="bg-[#FFFCF7] dark:bg-[#111F38] p-10 rounded-2xl border border-[#F5E6C8] dark:border-slate-800 shadow-sm text-center max-w-md mx-auto my-10">
-          <p className="text-[#1E5AA8] dark:text-slate-100 font-medium">Không tìm thấy bài viết nào phù hợp</p>
+        <div className="glass-card p-10 rounded-3xl border border-white/70 dark:border-white/10 text-center max-w-md mx-auto my-10">
+          <p className="text-[#1E5AA8] dark:text-slate-100 font-bold">Không tìm thấy bài viết nào phù hợp</p>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Hãy điều chỉnh bộ lọc hoặc từ khóa tìm kiếm của bạn.</p>
           <button
             onClick={() => {
@@ -587,14 +548,14 @@ export default function ArticlesStudio() {
               setSelectedCategory('Tất cả');
               setSearchQuery('');
             }}
-            className="mt-4 px-4 py-2 rounded-xl bg-[#FAF3E3] dark:bg-[#0B1528] text-slate-700 dark:text-slate-300 text-xs font-medium border border-[#F5E6C8] dark:border-slate-800 hover:bg-[#F5E6C8]/60 dark:hover:bg-[#162746] whitespace-nowrap shrink-0"
+            className="mt-4 px-4 py-2 rounded-xl bg-[#FAF3E3] dark:bg-[#0B1528] text-slate-700 dark:text-slate-300 text-xs font-semibold border border-[#F5E6C8] dark:border-slate-800 hover:bg-[#F5E6C8]/60 dark:hover:bg-[#162746] whitespace-nowrap shrink-0"
           >
             Đặt lại bộ lọc
           </button>
         </div>
       )}
 
-      {/* Articles Grid */}
+      {/* Articles Grid: Frosted Glass Cards */}
       {!loading && filteredArticles.length > 0 && (
         <div className="max-h-[72vh] overflow-y-auto overscroll-contain custom-scrollbar pr-1">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -610,7 +571,6 @@ export default function ArticlesStudio() {
                       handleChangeStatus(art, 'reading');
                     }
                   }}
-                  onEdit={() => handleOpenEdit(art)}
                   onDelete={() => handleDelete(art.id)}
                   onToggleFavorite={(e) => handleToggleFavorite(art, e)}
                   onTogglePublic={(e) => handleTogglePublic(art, e)}
@@ -642,16 +602,16 @@ export default function ArticlesStudio() {
 
             {/* Reader Floating Header Bar (Optimized for Mobile Screens down to 320px) */}
             <header
-              className={`px-3 sm:px-6 py-2.5 sm:py-3.5 border-b flex items-center justify-between gap-2 sm:gap-4 backdrop-blur-md transition-colors ${readerThemeStyles.header}`}
+              className={`px-3 sm:px-6 py-2.5 sm:py-3.5 border-b flex items-center justify-between gap-2 sm:gap-4 backdrop-blur-xl transition-colors ${readerThemeStyles.header}`}
             >
               <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
                 <button
                   onClick={() => setReadingArticle(null)}
-                  className={`p-2 min-h-[40px] min-w-[40px] flex items-center justify-center rounded-xl border transition-colors shrink-0 ${readerThemeStyles.btn}`}
+                  className={`p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl border transition-colors shrink-0 ${readerThemeStyles.btn}`}
                   title="Quay lại danh sách"
                   aria-label="Quay lại danh sách"
                 >
-                  <ChevronLeft className="w-4 h-4" />
+                  <ChevronLeft className="w-5 h-5" />
                 </button>
                 <div className="min-w-0 flex items-center gap-2">
                   <img
@@ -660,7 +620,7 @@ export default function ArticlesStudio() {
                     className="w-5 h-5 sm:w-6 sm:h-6 object-contain drop-shadow-sm hidden xs:inline shrink-0"
                   />
                   <div className="min-w-0">
-                    <span className={`text-[10px] font-semibold uppercase tracking-wider block leading-tight truncate ${readerThemeStyles.accent}`}>
+                    <span className={`text-[10px] font-bold uppercase tracking-wider block leading-tight truncate ${readerThemeStyles.accent}`}>
                       Chế độ Đọc
                     </span>
                     <h3 className="font-bold text-xs sm:text-sm truncate max-w-[110px] xs:max-w-[160px] sm:max-w-md leading-tight">
@@ -672,28 +632,38 @@ export default function ArticlesStudio() {
 
               {/* Reader Controls Toolbar */}
               <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+                {/* Edit Button in Reader Toolbar */}
+                <Link
+                  href={`/articles/${readingArticle.id}/edit`}
+                  className={`p-2 min-h-[40px] min-w-[40px] flex items-center justify-center rounded-xl border transition-colors ${readerThemeStyles.btn}`}
+                  title="Chỉnh sửa bài viết này trong trang riêng"
+                  aria-label="Chỉnh sửa bài viết"
+                >
+                  <Edit3 className="w-4 h-4" />
+                </Link>
+
                 {/* Font Selector (Tablet & Desktop) */}
                 <div className="hidden md:flex items-center border rounded-xl p-0.5 text-xs border-current/20">
                   <button
                     onClick={() => setReaderFont('serif')}
-                    className={`px-2 py-1 rounded-lg font-serif transition-colors ${
-                      readerFont === 'serif' ? 'bg-[#1E5AA8] text-white' : 'hover:opacity-80'
+                    className={`px-2.5 py-1.5 rounded-lg font-serif transition-colors ${
+                      readerFont === 'serif' ? 'bg-[#1E5AA8] text-white font-semibold' : 'hover:opacity-80'
                     }`}
                   >
                     Serif
                   </button>
                   <button
                     onClick={() => setReaderFont('sans')}
-                    className={`px-2 py-1 rounded-lg font-sans transition-colors ${
-                      readerFont === 'sans' ? 'bg-[#1E5AA8] text-white' : 'hover:opacity-80'
+                    className={`px-2.5 py-1.5 rounded-lg font-sans transition-colors ${
+                      readerFont === 'sans' ? 'bg-[#1E5AA8] text-white font-semibold' : 'hover:opacity-80'
                     }`}
                   >
                     Sans
                   </button>
                   <button
                     onClick={() => setReaderFont('mono')}
-                    className={`px-2 py-1 rounded-lg font-mono transition-colors ${
-                      readerFont === 'mono' ? 'bg-[#1E5AA8] text-white' : 'hover:opacity-80'
+                    className={`px-2.5 py-1.5 rounded-lg font-mono transition-colors ${
+                      readerFont === 'mono' ? 'bg-[#1E5AA8] text-white font-semibold' : 'hover:opacity-80'
                     }`}
                   >
                     Mono
@@ -704,15 +674,15 @@ export default function ArticlesStudio() {
                 <div className="flex items-center border rounded-xl p-0.5 text-xs border-current/20">
                   <button
                     onClick={() => setReaderFontSize((s) => Math.max(14, s - 2))}
-                    className="px-1.5 sm:px-2 py-1 hover:opacity-80 font-bold"
+                    className="min-h-[40px] px-2 py-1 hover:opacity-80 font-bold"
                     title="Giảm kích thước chữ"
                   >
                     A-
                   </button>
-                  <span className="px-1 text-[10px] sm:text-[11px] font-mono opacity-80">{readerFontSize}</span>
+                  <span className="px-1 text-[11px] font-mono opacity-80">{readerFontSize}</span>
                   <button
                     onClick={() => setReaderFontSize((s) => Math.min(26, s + 2))}
-                    className="px-1.5 sm:px-2 py-1 hover:opacity-80 font-bold"
+                    className="min-h-[40px] px-2 py-1 hover:opacity-80 font-bold"
                     title="Tăng kích thước chữ"
                   >
                     A+
@@ -723,18 +693,18 @@ export default function ArticlesStudio() {
                 <div className="flex items-center border rounded-xl p-0.5 text-xs border-current/20">
                   <button
                     onClick={() => setReaderTheme('paper')}
-                    className={`p-1.5 sm:px-2 sm:py-1 rounded-lg flex items-center gap-1 transition-colors ${
-                      readerTheme === 'paper' ? 'bg-[#1E5AA8] text-white' : 'hover:opacity-80'
+                    className={`min-h-[40px] p-2 sm:px-2.5 sm:py-1.5 rounded-lg flex items-center gap-1 transition-colors ${
+                      readerTheme === 'paper' ? 'bg-[#1E5AA8] text-white font-semibold' : 'hover:opacity-80'
                     }`}
                     title="Vanilla Cream Paper"
                   >
-                    <Sun className="w-3.5 h-3.5" />
+                    <Sun className="w-4 h-4" />
                     <span className="hidden md:inline">Paper</span>
                   </button>
                   <button
                     onClick={() => setReaderTheme('sepia')}
-                    className={`p-1.5 sm:px-2 sm:py-1 rounded-lg flex items-center gap-1 transition-colors ${
-                      readerTheme === 'sepia' ? 'bg-[#92400e] text-white' : 'hover:opacity-80'
+                    className={`min-h-[40px] p-2 sm:px-2.5 sm:py-1.5 rounded-lg flex items-center gap-1 transition-colors ${
+                      readerTheme === 'sepia' ? 'bg-[#92400e] text-white font-semibold' : 'hover:opacity-80'
                     }`}
                     title="Warm Sepia"
                   >
@@ -743,24 +713,24 @@ export default function ArticlesStudio() {
                   </button>
                   <button
                     onClick={() => setReaderTheme('oled')}
-                    className={`p-1.5 sm:px-2 sm:py-1 rounded-lg flex items-center gap-1 transition-colors ${
-                      readerTheme === 'oled' ? 'bg-zinc-800 text-white' : 'hover:opacity-80'
+                    className={`min-h-[40px] p-2 sm:px-2.5 sm:py-1.5 rounded-lg flex items-center gap-1 transition-colors ${
+                      readerTheme === 'oled' ? 'bg-zinc-800 text-white font-semibold' : 'hover:opacity-80'
                     }`}
                     title="Dark OLED"
                   >
-                    <Moon className="w-3.5 h-3.5" />
+                    <Moon className="w-4 h-4" />
                     <span className="hidden md:inline">OLED</span>
                   </button>
                 </div>
 
-                {/* Close Button (Hidden on small mobile since back button is present) */}
+                {/* Close Button */}
                 <button
                   onClick={() => setReadingArticle(null)}
-                  className={`hidden sm:flex p-2 rounded-xl border transition-colors ${readerThemeStyles.btn}`}
+                  className={`hidden sm:flex min-h-[44px] min-w-[44px] items-center justify-center p-2 rounded-xl border transition-colors ${readerThemeStyles.btn}`}
                   title="Đóng chế độ đọc"
                   aria-label="Đóng"
                 >
-                  <X className="w-4 h-4" />
+                  <X className="w-5 h-5" />
                 </button>
               </div>
             </header>
@@ -774,7 +744,7 @@ export default function ArticlesStudio() {
               <div className="max-w-2xl mx-auto space-y-8">
                 {/* Cover Image in Reader */}
                 {readingArticle.coverImage && (
-                  <div className="rounded-2xl overflow-hidden shadow-xl border border-[#F5E6C8] max-h-80 w-full mb-8">
+                  <div className="rounded-3xl overflow-hidden shadow-xl border border-white/40 dark:border-white/10 max-h-80 w-full mb-8">
                     <img
                       src={readingArticle.coverImage}
                       alt={readingArticle.title}
@@ -786,7 +756,7 @@ export default function ArticlesStudio() {
                 {/* Header Information */}
                 <div className="space-y-4 border-b pb-6 border-current/15">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className={`px-3 py-1 rounded-full text-xs font-medium border ${readerThemeStyles.tag}`}>
+                    <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${readerThemeStyles.tag}`}>
                       {readingArticle.category}
                     </span>
                     <span className={`text-xs ${readerThemeStyles.meta}`}>
@@ -797,13 +767,13 @@ export default function ArticlesStudio() {
                       })}
                     </span>
                     {readingArticle.isPublic && (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#1E5AA8]/10 text-[#1E5AA8] border border-[#1E5AA8]/20 text-xs font-medium">
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#1E5AA8]/10 text-[#1E5AA8] dark:text-sky-300 border border-[#1E5AA8]/20 text-xs font-medium">
                         <Globe className="w-3 h-3" /> Công khai
                       </span>
                     )}
                   </div>
 
-                  <h1 className={`text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight leading-tight text-[#1E5AA8] ${readerFontClass}`}>
+                  <h1 className={`text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight leading-tight text-[#1E5AA8] dark:text-sky-300 ${readerFontClass}`}>
                     {readingArticle.title}
                   </h1>
 
@@ -826,14 +796,14 @@ export default function ArticlesStudio() {
                     readingArticle.content.split('\n\n').map((paragraph, pIdx) => {
                       if (paragraph.startsWith('# ')) {
                         return (
-                          <h1 key={pIdx} className="text-2xl font-bold mt-8 mb-4 text-[#1E5AA8]">
+                          <h1 key={pIdx} className="text-2xl font-bold mt-8 mb-4 text-[#1E5AA8] dark:text-sky-300">
                             {paragraph.replace('# ', '')}
                           </h1>
                         );
                       }
                       if (paragraph.startsWith('## ')) {
                         return (
-                          <h2 key={pIdx} className="text-xl font-bold mt-6 mb-3 text-[#1E5AA8]">
+                          <h2 key={pIdx} className="text-xl font-bold mt-6 mb-3 text-[#1E5AA8] dark:text-sky-300">
                             {paragraph.replace('## ', '')}
                           </h2>
                         );
@@ -871,12 +841,12 @@ export default function ArticlesStudio() {
                       {readingArticle.readStatus !== 'completed' ? (
                         <button
                           onClick={() => handleChangeStatus(readingArticle, 'completed')}
-                          className="px-4 py-2 rounded-xl bg-gradient-to-r from-[#F58220] to-[#E06D10] hover:from-[#E06D10] hover:to-[#C95B07] text-white font-medium text-xs flex items-center gap-1.5 transition-all shadow-md shadow-[#F58220]/25"
+                          className="px-4 py-2 rounded-xl bg-gradient-to-r from-[#F58220] to-[#E06D10] hover:from-[#E06D10] hover:to-[#C95B07] text-white font-semibold text-xs flex items-center gap-1.5 transition-all shadow-md shadow-[#F58220]/25"
                         >
                           <CheckCircle2 className="w-4 h-4" /> Đánh dấu đã xong
                         </button>
                       ) : (
-                        <span className="px-3 py-1.5 rounded-xl bg-emerald-500/20 text-emerald-700 border border-emerald-500/30 text-xs font-medium flex items-center gap-1.5">
+                        <span className="px-3 py-1.5 rounded-xl bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 text-xs font-semibold flex items-center gap-1.5">
                           <Check className="w-3.5 h-3.5" /> Đã hoàn thành
                         </span>
                       )}
@@ -935,286 +905,14 @@ export default function ArticlesStudio() {
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* Create / Edit Article Modal */}
-      <AnimatePresence>
-        {isEditorOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 15 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 15 }}
-              className="bg-[#FFFCF7] dark:bg-[#111F38] w-full max-w-3xl rounded-2xl p-6 shadow-2xl relative border border-[#F5E6C8] dark:border-slate-800 overflow-hidden flex flex-col max-h-[88vh] overflow-y-auto overscroll-contain custom-scrollbar"
-            >
-              <div className="flex items-center justify-between pb-4 border-b border-[#F5E6C8]/60 dark:border-slate-800">
-                <h2 className="text-lg font-bold text-[#1E5AA8] dark:text-slate-100 flex items-center gap-2">
-                  <img
-                    src="/icons/3d/pencil.png"
-                    alt="Pencil"
-                    className="w-6 h-6 object-contain hover:scale-110 hover:-rotate-3 transition-transform duration-300 drop-shadow-sm"
-                  />
-                  {editingArticle ? 'Chỉnh sửa bài viết' : 'Soạn bài viết mới'}
-                </h2>
-                <button
-                  onClick={() => setIsEditorOpen(false)}
-                  className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-[#FAF3E3] dark:hover:bg-[#0B1528] transition-all"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              <form onSubmit={handleSaveArticle} className="flex-1 overflow-y-auto py-4 space-y-4">
-                {/* Title and Slug */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                      Tiêu đề bài viết <span className="text-[#F58220]">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="Nhập tiêu đề..."
-                      value={editorTitle}
-                      onChange={(e) => handleTitleChange(e.target.value)}
-                      className="w-full px-4 py-2.5 rounded-xl bg-[#FAF3E3]/60 dark:bg-[#0B1528] border border-[#F5E6C8] dark:border-slate-800 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 text-sm focus:bg-white dark:focus:bg-[#0B1528] focus:outline-none focus:border-[#1E5AA8] focus:ring-2 focus:ring-[#1E5AA8]/15"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                      Đường dẫn tĩnh (Slug URL) <span className="text-[#F58220]">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="tieu-de-bai-viet"
-                      value={editorSlug}
-                      onChange={(e) => setEditorSlug(e.target.value)}
-                      className="w-full px-4 py-2.5 rounded-xl bg-[#FAF3E3]/60 dark:bg-[#0B1528] border border-[#F5E6C8] dark:border-slate-800 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 text-sm font-mono focus:bg-white dark:focus:bg-[#0B1528] focus:outline-none focus:border-[#1E5AA8] focus:ring-2 focus:ring-[#1E5AA8]/15"
-                    />
-                  </div>
-                </div>
-
-                {/* Category & Status */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                      Chủ đề
-                    </label>
-                    <select
-                      value={editorCategory}
-                      onChange={(e) => setEditorCategory(e.target.value)}
-                      className="w-full px-4 py-2.5 rounded-xl bg-[#FAF3E3]/60 dark:bg-[#0B1528] border border-[#F5E6C8] dark:border-slate-800 text-slate-900 dark:text-slate-100 text-sm focus:bg-white dark:focus:bg-[#0B1528] focus:outline-none focus:border-[#1E5AA8] focus:ring-2 focus:ring-[#1E5AA8]/15"
-                    >
-                      {CATEGORIES.filter((c) => c !== 'Tất cả').map((cat) => (
-                        <option key={cat} value={cat} className="bg-white dark:bg-[#0B1528] text-slate-900 dark:text-slate-100">
-                          {cat}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                      Trạng thái đọc
-                    </label>
-                    <select
-                      value={editorReadStatus}
-                      onChange={(e) =>
-                        setEditorReadStatus(e.target.value as 'unread' | 'reading' | 'completed')
-                      }
-                      className="w-full px-4 py-2.5 rounded-xl bg-[#FAF3E3]/60 dark:bg-[#0B1528] border border-[#F5E6C8] dark:border-slate-800 text-slate-900 dark:text-slate-100 text-sm focus:bg-white dark:focus:bg-[#0B1528] focus:outline-none focus:border-[#1E5AA8] focus:ring-2 focus:ring-[#1E5AA8]/15"
-                    >
-                      <option value="unread" className="bg-white dark:bg-[#0B1528] text-slate-900 dark:text-slate-100">Chưa đọc</option>
-                      <option value="reading" className="bg-white dark:bg-[#0B1528] text-slate-900 dark:text-slate-100">Đang đọc</option>
-                      <option value="completed" className="bg-white dark:bg-[#0B1528] text-slate-900 dark:text-slate-100">Đã đọc xong</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                      Thời gian đọc (phút)
-                    </label>
-                    <input
-                      type="number"
-                      min={1}
-                      value={editorReadingTime}
-                      onChange={(e) => setEditorReadingTime(parseInt(e.target.value) || 1)}
-                      className="w-full px-4 py-2.5 rounded-xl bg-[#FAF3E3]/60 dark:bg-[#0B1528] border border-[#F5E6C8] dark:border-slate-800 text-slate-900 dark:text-slate-100 text-sm focus:bg-white dark:focus:bg-[#0B1528] focus:outline-none focus:border-[#1E5AA8] focus:ring-2 focus:ring-[#1E5AA8]/15"
-                    />
-                  </div>
-                </div>
-
-                {/* Excerpt */}
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                    Tóm tắt ngắn (Excerpt)
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="Mô tả ngắn gọn về nội dung bài viết..."
-                    value={editorExcerpt}
-                    onChange={(e) => setEditorExcerpt(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl bg-[#FAF3E3]/60 dark:bg-[#0B1528] border border-[#F5E6C8] dark:border-slate-800 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 text-sm focus:bg-white dark:focus:bg-[#0B1528] focus:outline-none focus:border-[#1E5AA8] focus:ring-2 focus:ring-[#1E5AA8]/15"
-                  />
-                </div>
-
-                {/* Cover Image URL */}
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                    Ảnh bìa (Cover Image URL)
-                  </label>
-                  <input
-                    type="url"
-                    placeholder="https://images.unsplash.com/..."
-                    value={editorCoverImage}
-                    onChange={(e) => setEditorCoverImage(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl bg-[#FAF3E3]/60 dark:bg-[#0B1528] border border-[#F5E6C8] dark:border-slate-800 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 text-sm focus:bg-white dark:focus:bg-[#0B1528] focus:outline-none focus:border-[#1E5AA8] focus:ring-2 focus:ring-[#1E5AA8]/15"
-                  />
-                </div>
-
-                {/* Content */}
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                    Nội dung bài viết (Markdown hỗ trợ # H1, ## H2, &gt; trích dẫn)
-                  </label>
-                  <textarea
-                    rows={10}
-                    placeholder="Viết nội dung bài viết của bạn tại đây..."
-                    value={editorContent}
-                    onChange={(e) => handleContentChange(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl bg-[#FAF3E3]/60 dark:bg-[#0B1528] border border-[#F5E6C8] dark:border-slate-800 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 text-sm font-sans focus:bg-white dark:focus:bg-[#0B1528] focus:outline-none focus:border-[#1E5AA8] focus:ring-2 focus:ring-[#1E5AA8]/15 resize-y"
-                  />
-                </div>
-
-                {/* Tags */}
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Thẻ (#tags)</label>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      placeholder="Thêm thẻ (nhấn Enter để thêm)..."
-                      value={tagInput}
-                      onChange={(e) => setTagInput(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault();
-                          const val = tagInput.trim().replace(/^#/, '');
-                          if (val && !editorTags.includes(val)) {
-                            setEditorTags([...editorTags, val]);
-                            setTagInput('');
-                          }
-                        }
-                      }}
-                      className="flex-1 px-3.5 py-2 rounded-xl bg-[#FAF3E3]/60 dark:bg-[#0B1528] border border-[#F5E6C8] dark:border-slate-800 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 text-xs focus:bg-white dark:focus:bg-[#0B1528] focus:outline-none focus:border-[#1E5AA8]"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const val = tagInput.trim().replace(/^#/, '');
-                        if (val && !editorTags.includes(val)) {
-                          setEditorTags([...editorTags, val]);
-                          setTagInput('');
-                        }
-                      }}
-                      className="px-3.5 py-1.5 rounded-xl bg-[#FAF3E3] dark:bg-[#0B1528] hover:bg-[#F5E6C8]/70 dark:hover:bg-[#162746] text-slate-700 dark:text-slate-300 text-xs font-medium border border-[#F5E6C8] dark:border-slate-800 transition-colors whitespace-nowrap shrink-0"
-                    >
-                      Thêm
-                    </button>
-                  </div>
-                  {editorTags.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5 mt-2">
-                      {editorTags.map((t) => (
-                        <span
-                          key={t}
-                          className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#FAF3E3] dark:bg-[#0B1528] border border-[#F5E6C8] dark:border-slate-800 text-[#1E5AA8] dark:text-blue-400 text-xs font-medium whitespace-nowrap shrink-0"
-                        >
-                          #{t}
-                          <button
-                            type="button"
-                            onClick={() => setEditorTags(editorTags.filter((x) => x !== t))}
-                            className="hover:text-rose-500 ml-0.5"
-                          >
-                            <X className="w-3 h-3" />
-                          </button>
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* Public & Favorite Toggles */}
-                <div className="pt-2 flex flex-wrap gap-6">
-                  <label className="inline-flex items-center gap-2 cursor-pointer select-none">
-                    <input
-                      type="checkbox"
-                      checked={editorIsPublic}
-                      onChange={(e) => setEditorIsPublic(e.target.checked)}
-                      className="sr-only"
-                    />
-                    <div
-                      className={`w-9 h-5 rounded-full transition-colors relative ${
-                        editorIsPublic ? 'bg-[#1E5AA8]' : 'bg-slate-300 dark:bg-slate-700'
-                      }`}
-                    >
-                      <div
-                        className={`w-4 h-4 rounded-full bg-white transition-transform absolute top-0.5 ${
-                          editorIsPublic ? 'left-4' : 'left-0.5'
-                        }`}
-                      />
-                    </div>
-                    <span className="text-xs font-medium text-slate-700 dark:text-slate-300 flex items-center gap-1">
-                      <Globe className="w-3.5 h-3.5 text-[#1E5AA8] dark:text-blue-400" /> Chia sẻ công khai (/p/{editorSlug || 'slug'})
-                    </span>
-                  </label>
-
-                  <label className="inline-flex items-center gap-2 cursor-pointer select-none">
-                    <input
-                      type="checkbox"
-                      checked={editorIsFavorite}
-                      onChange={(e) => setEditorIsFavorite(e.target.checked)}
-                      className="sr-only"
-                    />
-                    <Heart
-                      className={`w-5 h-5 transition-colors ${
-                        editorIsFavorite ? 'text-rose-500 fill-rose-500' : 'text-slate-300 dark:text-slate-600'
-                      }`}
-                    />
-                    <span className="text-xs font-medium text-slate-700 dark:text-slate-300">Yêu thích</span>
-                  </label>
-                </div>
-
-                {/* Footer Buttons */}
-                <div className="flex items-center justify-end gap-3 pt-4 border-t border-[#F5E6C8]/60 dark:border-slate-800">
-                  <button
-                    type="button"
-                    onClick={() => setIsEditorOpen(false)}
-                    className="px-4 py-2 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-[#FAF3E3] dark:hover:bg-[#0B1528] text-sm font-medium transition-all whitespace-nowrap shrink-0"
-                  >
-                    Hủy
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={saving}
-                    className="px-5 py-2 rounded-xl bg-gradient-to-r from-[#F58220] to-[#E06D10] hover:from-[#E06D10] hover:to-[#C95B07] disabled:opacity-50 text-white font-medium text-sm transition-all shadow-md shadow-[#F58220]/25 flex items-center gap-1.5 whitespace-nowrap shrink-0"
-                  >
-                    {saving ? 'Đang lưu...' : editingArticle ? 'Cập nhật' : 'Đăng bài'}
-                  </button>
-                </div>
-              </form>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }
 
-// Subcomponent: Individual Article Card
+// Subcomponent: Individual Article Card with Frosted Glass & Tilt
 interface ArticleCardProps {
   article: Article;
   onRead: () => void;
-  onEdit: () => void;
   onDelete: () => void;
   onToggleFavorite: (e: React.MouseEvent) => void;
   onTogglePublic: (e: React.MouseEvent) => void;
@@ -1225,7 +923,6 @@ interface ArticleCardProps {
 function ArticleCard({
   article,
   onRead,
-  onEdit,
   onDelete,
   onToggleFavorite,
   onTogglePublic,
@@ -1233,8 +930,8 @@ function ArticleCard({
   isCopied,
 }: ArticleCardProps) {
   const statusBadge = {
-    unread: { text: 'Chưa đọc', color: 'bg-[#F58220]/15 text-[#F58220] border-[#F58220]/30' },
-    reading: { text: 'Đang đọc', color: 'bg-[#1E5AA8]/15 dark:bg-blue-950/40 text-[#1E5AA8] dark:text-blue-400 border-[#1E5AA8]/30 dark:border-blue-900/50' },
+    unread: { text: 'Chưa đọc', color: 'bg-[#F58220]/15 text-[#F58220] dark:text-amber-400 border-[#F58220]/30' },
+    reading: { text: 'Đang đọc', color: 'bg-[#1E5AA8]/15 dark:bg-blue-950/40 text-[#1E5AA8] dark:text-sky-300 border-[#1E5AA8]/30 dark:border-blue-900/50' },
     completed: { text: 'Đã xong', color: 'bg-emerald-500/15 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 dark:border-emerald-900/50' },
   }[article.readStatus];
 
@@ -1244,147 +941,170 @@ function ArticleCard({
       initial={{ opacity: 0, y: 15 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.95 }}
-      className="bg-[#FFFCF7] dark:bg-[#111F38] rounded-2xl overflow-hidden border border-[#F5E6C8] dark:border-slate-800 hover:border-[#1E5AA8]/40 dark:hover:border-slate-700 flex flex-col justify-between group transition-all duration-300 shadow-sm hover:shadow-md"
+      className="h-full"
     >
-      <div>
-        {/* Cover Image or Warm Vanilla Gradient */}
-        <div className="relative h-44 overflow-hidden bg-gradient-to-tr from-[#FAF3E3] via-[#F5E6C8]/40 to-[#FFFCF7] dark:from-[#0B1528] dark:via-[#111F38] dark:to-[#0B1528] border-b border-[#F5E6C8]/70 dark:border-slate-800">
-          {article.coverImage ? (
-            <img
-              src={article.coverImage}
-              alt={article.title}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center">
+      <GlassCard
+        tilt={true}
+        glowColor="sapphire"
+        padding="p-0"
+        className="h-full flex flex-col justify-between group overflow-hidden border border-white/70 dark:border-white/10 transition-all duration-300 hover:-translate-y-1"
+      >
+        <div>
+          {/* Cover Image or Warm Vanilla Gradient */}
+          <div className="relative h-44 overflow-hidden bg-gradient-to-tr from-[#FAF3E3] via-[#F5E6C8]/40 to-[#FFFCF7] dark:from-[#0B1528] dark:via-[#111F38] dark:to-[#0B1528] border-b border-[#F5E6C8]/70 dark:border-slate-800">
+            {article.coverImage ? (
               <img
-                src="/icons/3d/file-text.png"
-                alt="Article"
-                className="w-14 h-14 object-contain hover:scale-110 hover:-rotate-3 transition-transform duration-300 drop-shadow-md"
+                src={article.coverImage}
+                alt={article.title}
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
               />
-            </div>
-          )}
-
-          {/* Top badges over cover image */}
-          <div className="absolute top-3 inset-x-3 flex items-center justify-between">
-            <span className="px-2.5 py-1 rounded-lg bg-[#FFFCF7]/95 dark:bg-[#111F38]/95 backdrop-blur-md text-[#1E5AA8] dark:text-blue-400 text-[11px] font-semibold border border-[#F5E6C8] dark:border-slate-800 shadow-sm whitespace-nowrap shrink-0">
-              {article.category || 'General'}
-            </span>
-
-            <div className="flex items-center gap-1.5">
-              <button
-                type="button"
-                onClick={onToggleFavorite}
-                className="p-1.5 rounded-lg bg-[#FFFCF7]/95 dark:bg-[#111F38]/95 backdrop-blur-md text-slate-400 hover:text-rose-500 transition-colors border border-[#F5E6C8] dark:border-slate-800 shadow-sm shrink-0"
-                title={article.isFavorite ? 'Bỏ yêu thích' : 'Yêu thích'}
-              >
-                <Heart
-                  className={`w-3.5 h-3.5 ${
-                    article.isFavorite ? 'text-rose-500 fill-rose-500' : ''
-                  }`}
+            ) : (
+              <div className="w-full h-full flex items-center justify-center">
+                <img
+                  src="/icons/3d/file-text.png"
+                  alt="Article"
+                  className="w-14 h-14 object-contain hover:scale-110 hover:-rotate-3 transition-transform duration-300 drop-shadow-md"
                 />
-              </button>
-            </div>
-          </div>
+              </div>
+            )}
 
-          {/* Bottom badge over cover: Read status */}
-          <div className="absolute bottom-3 left-3 flex items-center gap-2">
-            <span className={`px-2 py-0.5 rounded-md text-[11px] font-medium border backdrop-blur-md whitespace-nowrap shrink-0 ${statusBadge.color}`}>
-              {statusBadge.text}
-            </span>
-            <span className="px-2 py-0.5 rounded-md bg-[#FFFCF7]/95 dark:bg-[#111F38]/95 backdrop-blur-md text-slate-700 dark:text-slate-300 text-[11px] border border-[#F5E6C8] dark:border-slate-800 flex items-center gap-1 font-medium shadow-sm whitespace-nowrap shrink-0">
-              <Clock className="w-3 h-3 text-[#F58220]" />
-              {article.readingTime || 1} phút
-            </span>
-          </div>
-        </div>
-
-        {/* Card Body */}
-        <div className="p-5 space-y-3">
-          <h3
-            onClick={onRead}
-            className="font-bold text-[#1E5AA8] dark:text-slate-100 text-base leading-snug line-clamp-2 hover:text-[#F58220] cursor-pointer transition-colors min-w-0 break-words"
-          >
-            {article.title}
-          </h3>
-
-          <p className="text-slate-600 dark:text-slate-400 text-xs sm:text-sm line-clamp-2 leading-relaxed min-w-0 break-words">
-            {article.excerpt || article.content?.slice(0, 100) || '(Không có tóm tắt)'}
-          </p>
-
-          {/* Tags */}
-          {article.tags && article.tags.length > 0 && (
-            <div className="flex flex-wrap gap-1.5 pt-1">
-              {article.tags.slice(0, 3).map((tag) => (
-                <span
-                  key={tag}
-                  className="px-2 py-0.5 rounded-full bg-[#FAF3E3] dark:bg-[#0B1528] border border-[#F5E6C8] dark:border-slate-800 text-slate-700 dark:text-slate-300 text-[11px] font-medium whitespace-nowrap shrink-0"
-                >
-                  #{tag}
-                </span>
-              ))}
-              {article.tags.length > 3 && (
-                <span className="text-[11px] text-slate-400">+{article.tags.length - 3}</span>
-              )}
-            </div>
-          )}
-
-          {/* Public Sharing info */}
-          {article.isPublic && (
-            <div className="pt-2 flex items-center justify-between text-xs text-[#1E5AA8] dark:text-blue-400 bg-[#FAF3E3] dark:bg-[#0B1528] px-2.5 py-1.5 rounded-xl border border-[#F5E6C8] dark:border-slate-800">
-              <span className="flex items-center gap-1 text-[11px] font-mono">
-                <Globe className="w-3 h-3 text-[#1E5AA8] dark:text-blue-400" /> /p/{article.slug}
+            {/* Top badges over cover image */}
+            <div className="absolute top-3 inset-x-3 flex items-center justify-between pointer-events-auto">
+              <span className="px-2.5 py-1 rounded-lg bg-[#FFFCF7]/95 dark:bg-[#111F38]/95 backdrop-blur-md text-[#1E5AA8] dark:text-sky-300 text-[11px] font-semibold border border-white/80 dark:border-slate-700 shadow-sm whitespace-nowrap shrink-0">
+                {article.category || 'Chung'}
               </span>
-              <button
-                type="button"
-                onClick={onCopyPublicLink}
-                className="hover:text-[#F58220] transition-colors flex items-center gap-1 text-[11px] font-medium whitespace-nowrap shrink-0"
-                title="Sao chép link chia sẻ công khai"
-              >
-                {isCopied ? (
-                  <>
-                    <Check className="w-3 h-3 text-emerald-600" /> Đã chép
-                  </>
-                ) : (
-                  <>
-                    <Copy className="w-3 h-3 text-[#F58220]" /> Chép link
-                  </>
-                )}
-              </button>
+
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={onToggleFavorite}
+                  className="p-1.5 rounded-lg bg-[#FFFCF7]/95 dark:bg-[#111F38]/95 backdrop-blur-md text-slate-400 hover:text-rose-500 transition-colors border border-white/80 dark:border-slate-700 shadow-sm shrink-0"
+                  title={article.isFavorite ? 'Bỏ yêu thích' : 'Yêu thích'}
+                >
+                  <Heart
+                    className={`w-3.5 h-3.5 ${
+                      article.isFavorite ? 'text-rose-500 fill-rose-500' : ''
+                    }`}
+                  />
+                </button>
+              </div>
             </div>
-          )}
+
+            {/* Bottom badge over cover: Read status & reading time */}
+            <div className="absolute bottom-3 left-3 flex items-center gap-2">
+              <span className={`px-2 py-0.5 rounded-md text-[11px] font-semibold border backdrop-blur-md whitespace-nowrap shrink-0 ${statusBadge.color}`}>
+                {statusBadge.text}
+              </span>
+              <span className="px-2 py-0.5 rounded-md bg-[#FFFCF7]/95 dark:bg-[#111F38]/95 backdrop-blur-md text-slate-700 dark:text-slate-300 text-[11px] border border-white/80 dark:border-slate-700 flex items-center gap-1 font-medium shadow-sm whitespace-nowrap shrink-0">
+                <Clock className="w-3 h-3 text-[#F58220]" />
+                {article.readingTime || 1} phút
+              </span>
+            </div>
+          </div>
+
+          {/* Card Body */}
+          <div className="p-5 space-y-3">
+            <h3
+              onClick={onRead}
+              className="font-bold text-[#1E5AA8] dark:text-slate-100 text-base leading-snug line-clamp-2 hover:text-[#F58220] cursor-pointer transition-colors min-w-0 break-words"
+            >
+              {article.title}
+            </h3>
+
+            <p className="text-slate-600 dark:text-slate-400 text-xs sm:text-sm line-clamp-2 leading-relaxed min-w-0 break-words">
+              {article.excerpt || article.content?.slice(0, 100) || '(Không có tóm tắt)'}
+            </p>
+
+            {/* Tags */}
+            {article.tags && article.tags.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                {article.tags.slice(0, 3).map((tag) => (
+                  <span
+                    key={tag}
+                    className="px-2 py-0.5 rounded-full bg-[#FAF3E3] dark:bg-[#0B1528] border border-[#F5E6C8] dark:border-slate-800 text-slate-700 dark:text-slate-300 text-[11px] font-medium whitespace-nowrap shrink-0"
+                  >
+                    #{tag}
+                  </span>
+                ))}
+                {article.tags.length > 3 && (
+                  <span className="text-[11px] text-slate-400">+{article.tags.length - 3}</span>
+                )}
+              </div>
+            )}
+
+            {/* Public Sharing info */}
+            {article.isPublic && (
+              <div className="pt-2 flex items-center justify-between text-xs text-[#1E5AA8] dark:text-sky-300 bg-[#FAF3E3] dark:bg-[#0B1528] px-2.5 py-1.5 rounded-xl border border-[#F5E6C8] dark:border-slate-800">
+                <span className="flex items-center gap-1 text-[11px] font-mono truncate mr-2">
+                  <Globe className="w-3 h-3 text-[#1E5AA8] dark:text-sky-400 shrink-0" /> /p/{article.slug}
+                </span>
+                <button
+                  type="button"
+                  onClick={onCopyPublicLink}
+                  className="hover:text-[#F58220] transition-colors flex items-center gap-1 text-[11px] font-semibold whitespace-nowrap shrink-0"
+                  title="Sao chép link chia sẻ công khai"
+                >
+                  {isCopied ? (
+                    <>
+                      <Check className="w-3 h-3 text-emerald-600 dark:text-emerald-400" /> Đã chép
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-3 h-3 text-[#F58220]" /> Chép link
+                    </>
+                  )}
+                </button>
+              </div>
+            )}
+          </div>
         </div>
-      </div>
 
-      {/* Card Footer Actions */}
-      <div className="p-4 pt-2 border-t border-[#F5E6C8]/60 dark:border-slate-800 flex items-center justify-between gap-2">
-        <button
-          type="button"
-          onClick={onRead}
-          className="flex-1 px-3 py-2 rounded-xl bg-[#FAF3E3] dark:bg-[#0B1528] hover:bg-[#F5E6C8]/60 dark:hover:bg-[#162746] text-[#1E5AA8] dark:text-slate-200 font-medium text-xs flex items-center justify-center gap-1.5 transition-colors border border-[#F5E6C8] dark:border-slate-800 hover:border-[#1E5AA8]/30 dark:hover:border-slate-700 whitespace-nowrap shrink-0"
-        >
-          <BookOpen className="w-3.5 h-3.5" />
-          <span>Đọc ngay</span>
-        </button>
+        {/* Card Footer Actions */}
+        <div className="p-4 pt-2 border-t border-[#F5E6C8]/60 dark:border-slate-800 flex items-center justify-between gap-2">
+          <button
+            type="button"
+            onClick={onRead}
+            className="flex-1 px-3 py-2 rounded-xl bg-[#FAF3E3] dark:bg-[#0B1528] hover:bg-[#F5E6C8]/60 dark:hover:bg-[#162746] text-[#1E5AA8] dark:text-slate-200 font-semibold text-xs flex items-center justify-center gap-1.5 transition-colors border border-[#F5E6C8] dark:border-slate-800 hover:border-[#1E5AA8]/30 dark:hover:border-slate-700 whitespace-nowrap shrink-0"
+          >
+            <BookOpen className="w-3.5 h-3.5" />
+            <span>Đọc ngay</span>
+          </button>
 
-        <button
-          type="button"
-          onClick={onEdit}
-          className="p-2 rounded-xl text-slate-400 hover:text-[#1E5AA8] dark:hover:text-blue-400 hover:bg-[#FAF3E3] dark:hover:bg-[#0B1528] transition-colors shrink-0"
-          title="Chỉnh sửa bài viết"
-        >
-          <Edit3 className="w-3.5 h-3.5" />
-        </button>
+          <button
+            type="button"
+            onClick={onTogglePublic}
+            className={`p-2 rounded-xl border transition-colors shrink-0 ${
+              article.isPublic
+                ? 'text-[#1E5AA8] dark:text-sky-300 bg-[#1E5AA8]/10 border-[#1E5AA8]/30'
+                : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-[#FAF3E3] dark:hover:bg-[#0B1528] border-transparent'
+            }`}
+            title={article.isPublic ? 'Bật công khai (Nhấp để tắt)' : 'Tắt công khai (Nhấp để bật)'}
+            aria-label="Chuyển đổi trạng thái chia sẻ công khai"
+          >
+            <Globe className="w-3.5 h-3.5" />
+          </button>
 
-        <button
-          type="button"
-          onClick={onDelete}
-          className="p-2 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors shrink-0"
-          title="Xóa bài viết"
-        >
-          <Trash2 className="w-3.5 h-3.5" />
-        </button>
-      </div>
+          {/* Navigate to Dedicated Edit Page */}
+          <Link
+            href={`/articles/${article.id}/edit`}
+            className="p-2 rounded-xl text-slate-400 hover:text-[#1E5AA8] dark:hover:text-sky-400 hover:bg-[#FAF3E3] dark:hover:bg-[#0B1528] transition-colors shrink-0 flex items-center justify-center"
+            title="Chỉnh sửa bài viết trong trang riêng"
+            aria-label="Chỉnh sửa bài viết"
+          >
+            <Edit3 className="w-3.5 h-3.5" />
+          </Link>
+
+          <button
+            type="button"
+            onClick={onDelete}
+            className="p-2 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors shrink-0"
+            title="Xóa bài viết"
+            aria-label="Xóa bài viết"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      </GlassCard>
     </motion.div>
   );
 }

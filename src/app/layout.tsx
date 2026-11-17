@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
 
@@ -21,6 +21,12 @@ export const metadata: Metadata = {
   },
 };
 
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -31,7 +37,7 @@ export default function RootLayout({
       <head>
         <meta name="color-scheme" content="light dark" />
       </head>
-      <body className={`${inter.variable} min-h-screen bg-background text-foreground antialiased selection:bg-[#F58220]/25 selection:text-[#1E5AA8]`}>
+      <body className={`${inter.variable} font-sans min-h-screen bg-background text-foreground antialiased selection:bg-[#F58220]/25 selection:text-[#1E5AA8]`}>
         {children}
       </body>
     </html>

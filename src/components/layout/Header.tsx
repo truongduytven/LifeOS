@@ -67,7 +67,7 @@ export default function Header({
 
   return (
     <>
-      <header className="sticky top-0 z-30 h-16 w-full bg-[#FFFCF7]/95 dark:bg-[#111F38]/95 backdrop-blur-xl border-b border-[#1E5AA8]/15 dark:border-slate-800 px-4 sm:px-6 flex items-center justify-between transition-colors">
+      <header className="sticky top-0 z-30 h-16 w-full bg-[#FFFCF7]/80 dark:bg-[#111F38]/80 backdrop-blur-xl saturate-160 border-b border-white/70 dark:border-white/10 shadow-[0_4px_20px_-2px_rgba(30,90,168,0.05),inset_0_-1px_0_0_rgba(255,255,255,0.7)] dark:shadow-[0_4px_20px_-2px_rgba(0,0,0,0.3),inset_0_-1px_0_0_rgba(255,255,255,0.08)] px-4 sm:px-6 flex items-center justify-between transition-colors">
         {/* Left: Mobile hamburger menu & Quick Search Trigger */}
         <div className="flex items-center gap-2 sm:gap-3 min-w-0">
           <button
@@ -81,7 +81,7 @@ export default function Header({
           {/* Mobile Quick Search Icon Button (<640px) */}
           <button
             onClick={() => setSearchOpen(true)}
-            className="sm:hidden min-h-[44px] min-w-[44px] flex items-center justify-center p-2 rounded-xl bg-[#F5E6C8]/30 dark:bg-[#172A4A] border border-[#1E5AA8]/15 dark:border-slate-700/80 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors shrink-0"
+            className="sm:hidden min-h-[44px] min-w-[44px] flex items-center justify-center p-2 rounded-xl bg-white/60 dark:bg-[#172A4A]/70 border border-white/80 dark:border-white/10 shadow-[inset_0_1px_1px_rgba(255,255,255,0.8)] dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)] text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors shrink-0"
             aria-label="Tìm kiếm nhanh"
           >
             <Search className="w-4 h-4 text-[#1E5AA8] dark:text-blue-400" />
@@ -90,13 +90,13 @@ export default function Header({
           {/* Quick Search Button (>=640px) */}
           <button
             onClick={() => setSearchOpen(true)}
-            className="hidden sm:flex items-center gap-2 px-3.5 py-1.5 min-h-[40px] rounded-xl bg-[#F5E6C8]/30 dark:bg-[#172A4A] border border-[#1E5AA8]/15 dark:border-slate-700/80 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white text-xs w-60 lg:w-72 justify-between cursor-pointer group transition-all shrink-0"
+            className="hidden sm:flex items-center gap-2 px-3.5 py-1.5 min-h-[40px] rounded-xl bg-white/60 dark:bg-[#172A4A]/70 border border-white/80 dark:border-white/10 shadow-[inset_0_1px_1px_rgba(255,255,255,0.8)] dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)] text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white text-xs w-60 lg:w-72 justify-between cursor-pointer group transition-all shrink-0"
           >
             <div className="flex items-center gap-2 min-w-0">
               <Search className="w-3.5 h-3.5 text-[#1E5AA8] dark:text-blue-400 transition-colors shrink-0" />
               <span className="truncate whitespace-nowrap">Tìm kiếm & Lệnh nhanh...</span>
             </div>
-            <kbd className="hidden md:inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-mono rounded bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-[#1E5AA8]/20 dark:border-slate-600 shadow-2xs shrink-0">
+            <kbd className="hidden md:inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-mono rounded bg-white/90 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-white/90 dark:border-slate-600 shadow-2xs shrink-0">
               <Command className="w-2.5 h-2.5" /> K
             </kbd>
           </button>
@@ -109,8 +109,8 @@ export default function Header({
             onClick={onToggleThreeD}
             className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 min-h-[40px] rounded-xl text-xs font-semibold transition-all border whitespace-nowrap shrink-0 ${
               threeDEnabled
-                ? 'bg-sapphire-50 text-sapphire-700 border-sapphire-200 dark:bg-sapphire-950/60 dark:text-blue-300 dark:border-blue-800'
-                : 'bg-slate-100 text-slate-500 border-slate-200 dark:bg-[#172A4A] dark:text-slate-400 dark:border-slate-700'
+                ? 'bg-sapphire-50/90 text-sapphire-700 border-sapphire-200/80 dark:bg-sapphire-950/70 dark:text-blue-300 dark:border-blue-800/80 shadow-[0_2px_8px_rgba(30,90,168,0.1),inset_0_1px_0_0_rgba(255,255,255,0.9)]'
+                : 'bg-white/60 text-slate-500 border-white/80 dark:bg-[#172A4A]/70 dark:text-slate-400 dark:border-white/10'
             }`}
             title={threeDEnabled ? 'Tắt widget 3D' : 'Bật widget 3D'}
             aria-label="Chuyển đổi widget 3D"
@@ -122,7 +122,7 @@ export default function Header({
           {/* Dark / Light Mode Toggle */}
           <button
             onClick={onToggleTheme}
-            className="min-h-[40px] min-w-[40px] flex items-center justify-center p-2 rounded-xl text-slate-600 hover:text-slate-800 dark:text-slate-300 dark:hover:text-white bg-[#F5E6C8]/40 dark:bg-[#172A4A] border border-[#1E5AA8]/15 dark:border-slate-700/80 transition-colors shrink-0"
+            className="min-h-[40px] min-w-[40px] flex items-center justify-center p-2 rounded-xl text-slate-600 hover:text-slate-800 dark:text-slate-300 dark:hover:text-white bg-white/60 dark:bg-[#172A4A]/70 border border-white/80 dark:border-white/10 shadow-[inset_0_1px_1px_rgba(255,255,255,0.8)] dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)] transition-colors shrink-0"
             title={isDark ? 'Chuyển sang chế độ Sáng' : 'Chuyển sang chế độ Tối'}
             aria-label="Chuyển đổi giao diện sáng tối"
           >
@@ -130,7 +130,7 @@ export default function Header({
           </button>
 
           {/* User Badge */}
-          <div className="flex items-center gap-2.5 pl-2 sm:pl-3 border-l border-[#1E5AA8]/15 dark:border-slate-800 shrink-0">
+          <div className="flex items-center gap-2.5 pl-2 sm:pl-3 border-l border-[#1E5AA8]/12 dark:border-white/10 shrink-0">
             <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-[#1E5AA8] to-[#F58220] flex items-center justify-center text-white font-bold text-xs shadow-sm shadow-[#1E5AA8]/20 shrink-0">
               {initials}
             </div>
@@ -149,14 +149,14 @@ export default function Header({
 
       {/* Quick Command / Search Modal */}
       {searchOpen && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 px-4">
+        <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 px-4 animate-in fade-in duration-150">
           <div
             onClick={() => setSearchOpen(false)}
-            className="fixed inset-0 bg-slate-900/40 backdrop-blur-md"
+            className="fixed inset-0 bg-slate-900/50 backdrop-blur-md"
             aria-hidden="true"
           />
 
-          <div className="relative w-full max-w-lg rounded-3xl bg-[#FFFCF7] dark:bg-[#111F38] border border-[#1E5AA8]/20 dark:border-slate-800 p-4 shadow-2xl overflow-hidden z-10 text-slate-800 dark:text-slate-100">
+          <div className="relative w-full max-w-lg rounded-3xl bg-[#FFFCF7]/90 dark:bg-[#111F38]/90 backdrop-blur-xl saturate-160 border border-white/80 dark:border-white/10 p-4 shadow-2xl overflow-hidden z-10 text-slate-800 dark:text-slate-100">
             <div className="relative mb-3">
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#1E5AA8] dark:text-sky-400" />
               <input
