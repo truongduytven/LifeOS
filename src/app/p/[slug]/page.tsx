@@ -19,12 +19,54 @@ import {
   Sparkles,
 } from 'lucide-react';
 import type { Article } from '@/types/lifeos';
+import Icon3D from '@/components/ui/Icon3D';
 
 type ReaderTheme = 'oled' | 'sepia' | 'paper';
 type ReaderFont = 'serif' | 'sans' | 'mono';
 
 interface PublicArticleResponse extends Article {
   author?: string;
+}
+
+function isSafeCoverUrl(url: string | null | undefined): url is string {
+  if (!url) return false;
+  const trimmed = url.trim();
+  if (!trimmed) return false;
+  return (
+    trimmed.startsWith('http://') ||
+    trimmed.startsWith('https://') ||
+    (trimmed.startsWith('/') && !trimmed.startsWith('//'))
+  );
+}
+
+function PublicCoverImage({ src, alt }: { src: string; alt: string }) {
+  const trimmedSrc = src.trim();
+  const [hasError, setHasError] = useState(false);
+
+  useEffect(() => {
+    setHasError(false);
+  }, [trimmedSrc]);
+
+  return (
+    <div className="relative w-full aspect-video rounded-2xl sm:rounded-3xl overflow-hidden shadow-xl border border-white/60 dark:border-white/10 mb-10 bg-gradient-to-tr from-[#FAF3E3]/90 via-[#F5E6C8]/45 to-[#FFFCF7]/90 dark:from-[#0B1528]/90 dark:via-[#111F38]/85 dark:to-[#0B1528]/90 backdrop-blur-md">
+      {!hasError ? (
+        <img
+          src={trimmedSrc}
+          alt={alt}
+          fetchPriority="high"
+          className="w-full h-full object-cover object-center"
+          onError={() => setHasError(true)}
+        />
+      ) : (
+        <div className="w-full h-full flex flex-col items-center justify-center gap-2 px-4 text-center">
+          <Icon3D name="bookmark" size={44} />
+          <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
+            Không thể tải ảnh bìa
+          </span>
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default function PublicArticlePage({
@@ -337,14 +379,11 @@ export default function PublicArticlePage({
       <main className="max-w-4xl mx-auto px-4 sm:px-6 md:px-8 py-8 sm:py-14">
         <div className={`rounded-3xl p-6 sm:p-10 md:p-14 ${themeClasses.card} transition-all duration-300`}>
           {/* Cover Image */}
-          {article.coverImage && (
-            <div className="rounded-2xl sm:rounded-3xl overflow-hidden shadow-xl border border-white/60 dark:border-white/10 max-h-96 w-full mb-10">
-              <img
-                src={article.coverImage}
-                alt={article.title}
-                className="w-full h-full object-cover"
-              />
-            </div>
+          {isSafeCoverUrl(article.coverImage) && (
+            <PublicCoverImage
+              src={article.coverImage}
+              alt={article.title}
+            />
           )}
 
           {/* Article Meta Header */}

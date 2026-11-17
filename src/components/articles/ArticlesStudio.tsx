@@ -27,9 +27,83 @@ import {
 } from 'lucide-react';
 import type { Article } from '@/types/lifeos';
 import GlassCard from '@/components/ui/GlassCard';
+import Icon3D from '@/components/ui/Icon3D';
 
 type ReaderTheme = 'oled' | 'sepia' | 'paper';
 type ReaderFont = 'serif' | 'sans' | 'mono';
+
+function isSafeCoverUrl(url: string | null | undefined): url is string {
+  if (!url) return false;
+  const trimmed = url.trim();
+  if (!trimmed) return false;
+  return (
+    trimmed.startsWith('http://') ||
+    trimmed.startsWith('https://') ||
+    (trimmed.startsWith('/') && !trimmed.startsWith('//'))
+  );
+}
+
+interface ArticleCoverImageProps {
+  src?: string | null;
+  alt: string;
+  className?: string;
+  imgClassName?: string;
+  priority?: boolean;
+  lazy?: boolean;
+  children?: React.ReactNode;
+}
+
+function ArticleCoverImage({
+  src,
+  alt,
+  className = '',
+  imgClassName = '',
+  priority = false,
+  lazy = false,
+  children,
+}: ArticleCoverImageProps) {
+  const trimmedSrc = src?.trim() || '';
+  const hasSrc = Boolean(trimmedSrc);
+  const isSafe = isSafeCoverUrl(trimmedSrc);
+  const [hasError, setHasError] = useState(false);
+
+  useEffect(() => {
+    setHasError(false);
+  }, [trimmedSrc]);
+
+  return (
+    <div
+      className={`relative w-full aspect-video overflow-hidden bg-gradient-to-tr from-[#FAF3E3] via-[#F5E6C8]/40 to-[#FFFCF7] dark:from-[#0B1528] dark:via-[#111F38] dark:to-[#0B1528] backdrop-blur-md ${className}`}
+    >
+      {hasSrc && isSafe && !hasError ? (
+        <img
+          src={trimmedSrc}
+          alt={alt}
+          loading={lazy ? 'lazy' : undefined}
+          fetchPriority={priority ? 'high' : undefined}
+          className={`w-full h-full object-cover object-center ${imgClassName}`}
+          onError={() => setHasError(true)}
+        />
+      ) : hasSrc ? (
+        <div className="w-full h-full flex flex-col items-center justify-center gap-1.5 px-4 text-center">
+          <Icon3D name="bookmark" size={40} />
+          <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
+            Không thể tải ảnh bìa
+          </span>
+        </div>
+      ) : (
+        <div className="w-full h-full flex items-center justify-center">
+          <img
+            src="/icons/3d/file-text.png"
+            alt="Article"
+            className="w-14 h-14 object-contain hover:scale-110 hover:-rotate-3 transition-transform duration-300 drop-shadow-md"
+          />
+        </div>
+      )}
+      {children}
+    </div>
+  );
+}
 
 const CATEGORIES = [
   'Tất cả',
@@ -501,9 +575,9 @@ export default function ArticlesStudio() {
           {[1, 2, 3, 4, 5, 6].map((idx) => (
             <div
               key={idx}
-              className="glass-card rounded-3xl h-80 animate-pulse p-4 space-y-4 border border-white/60 dark:border-white/10"
+              className="glass-card rounded-3xl min-h-80 animate-pulse p-4 space-y-4 border border-white/60 dark:border-white/10"
             >
-              <div className="h-36 bg-slate-200/60 dark:bg-slate-800 rounded-2xl" />
+              <div className="w-full aspect-video bg-slate-200/60 dark:bg-slate-800 rounded-2xl" />
               <div className="h-5 bg-slate-200/60 dark:bg-slate-800 rounded w-3/4" />
               <div className="h-4 bg-slate-200/60 dark:bg-slate-800 rounded w-full" />
               <div className="h-4 bg-slate-200/60 dark:bg-slate-800 rounded w-2/3" />
@@ -743,14 +817,13 @@ export default function ArticlesStudio() {
             >
               <div className="max-w-2xl mx-auto space-y-8">
                 {/* Cover Image in Reader */}
-                {readingArticle.coverImage && (
-                  <div className="rounded-3xl overflow-hidden shadow-xl border border-white/40 dark:border-white/10 max-h-80 w-full mb-8">
-                    <img
-                      src={readingArticle.coverImage}
-                      alt={readingArticle.title}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
+                {isSafeCoverUrl(readingArticle.coverImage) && (
+                  <ArticleCoverImage
+                    src={readingArticle.coverImage}
+                    alt={readingArticle.title}
+                    priority={true}
+                    className="rounded-3xl shadow-xl border border-white/40 dark:border-white/10 mb-8"
+                  />
                 )}
 
                 {/* Header Information */}
@@ -951,23 +1024,13 @@ function ArticleCard({
       >
         <div>
           {/* Cover Image or Warm Vanilla Gradient */}
-          <div className="relative h-44 overflow-hidden bg-gradient-to-tr from-[#FAF3E3] via-[#F5E6C8]/40 to-[#FFFCF7] dark:from-[#0B1528] dark:via-[#111F38] dark:to-[#0B1528] border-b border-[#F5E6C8]/70 dark:border-slate-800">
-            {article.coverImage ? (
-              <img
-                src={article.coverImage}
-                alt={article.title}
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-              />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center">
-                <img
-                  src="/icons/3d/file-text.png"
-                  alt="Article"
-                  className="w-14 h-14 object-contain hover:scale-110 hover:-rotate-3 transition-transform duration-300 drop-shadow-md"
-                />
-              </div>
-            )}
-
+          <ArticleCoverImage
+            src={article.coverImage}
+            alt={article.title}
+            lazy={true}
+            imgClassName="group-hover:scale-105 transition-transform duration-500"
+            className="border-b border-[#F5E6C8]/70 dark:border-slate-800"
+          >
             {/* Top badges over cover image */}
             <div className="absolute top-3 inset-x-3 flex items-center justify-between pointer-events-auto">
               <span className="px-2.5 py-1 rounded-lg bg-[#FFFCF7]/95 dark:bg-[#111F38]/95 backdrop-blur-md text-[#1E5AA8] dark:text-sky-300 text-[11px] font-semibold border border-white/80 dark:border-slate-700 shadow-sm whitespace-nowrap shrink-0">
@@ -1000,7 +1063,7 @@ function ArticleCard({
                 {article.readingTime || 1} phút
               </span>
             </div>
-          </div>
+          </ArticleCoverImage>
 
           {/* Card Body */}
           <div className="p-5 space-y-3">

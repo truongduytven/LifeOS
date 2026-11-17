@@ -119,6 +119,69 @@ function parseInlineMarkdown(text: string): React.ReactNode[] {
   });
 }
 
+function isSafeCoverUrl(url: string | null | undefined): url is string {
+  if (!url) return false;
+  const trimmed = url.trim();
+  if (!trimmed) return false;
+  return (
+    trimmed.startsWith('http://') ||
+    trimmed.startsWith('https://') ||
+    (trimmed.startsWith('/') && !trimmed.startsWith('//'))
+  );
+}
+
+interface CoverImageFrameProps {
+  src: string;
+  alt: string;
+  className?: string;
+  compact?: boolean;
+  priority?: boolean;
+  children?: React.ReactNode;
+}
+
+function CoverImageFrame({
+  src,
+  alt,
+  className = '',
+  compact = false,
+  priority = false,
+  children,
+}: CoverImageFrameProps) {
+  const trimmedSrc = src.trim();
+  const isSafe = isSafeCoverUrl(trimmedSrc);
+  const [hasError, setHasError] = useState(false);
+
+  useEffect(() => {
+    setHasError(false);
+  }, [trimmedSrc]);
+
+  return (
+    <div
+      className={`relative w-full aspect-video overflow-hidden bg-gradient-to-tr from-[#FAF3E3]/90 via-[#F5E6C8]/45 to-[#FFFCF7]/90 dark:from-[#0B1528]/90 dark:via-[#111F38]/85 dark:to-[#0B1528]/90 backdrop-blur-md ${className}`}
+    >
+      {isSafe && !hasError ? (
+        <img
+          src={trimmedSrc}
+          alt={alt}
+          fetchPriority={priority ? 'high' : undefined}
+          className="w-full h-full object-cover object-center"
+          onError={() => setHasError(true)}
+        />
+      ) : (
+        <div className="w-full h-full flex flex-col items-center justify-center gap-1.5 px-4 text-center">
+          <Icon3D name="bookmark" size={compact ? 28 : 40} />
+          <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
+            {!isSafe
+              ? 'URL ảnh không hợp lệ (chỉ hỗ trợ http://, https:// hoặc /)'
+              : 'Không thể tải ảnh bìa'}
+          </span>
+        </div>
+      )}
+      {children}
+    </div>
+  );
+}
+
 interface ArticleEditorPageProps {
   mode: 'create' | 'edit';
   articleId?: number;
@@ -897,6 +960,13 @@ Nội dung thông thường với **in đậm**, *in nghiêng*, `code` và liên
                     <Eye className="w-3.5 h-3.5" />
                     Xem trước trực tiếp
                   </div>
+                  {isSafeCoverUrl(coverImage) && (
+                    <CoverImageFrame
+                      src={coverImage}
+                      alt={title || 'Ảnh bìa bài viết'}
+                      className="rounded-2xl mb-5 shrink-0 border border-white/60 dark:border-white/10 shadow-sm"
+                    />
+                  )}
                   <div className="prose-reader text-sm leading-relaxed text-slate-800 dark:text-slate-200 space-y-4">
                     {content ? (
                       content.split('\n\n').map((paragraph, pIdx) => {
@@ -971,14 +1041,13 @@ Nội dung thông thường với **in đậm**, *in nghiêng*, `code` và liên
             {/* 3. PREVIEW VIEW (Full Width Reader Surface) */}
             {viewMode === 'preview' && (
               <div className="glass-card rounded-3xl p-6 sm:p-10 border border-white/70 dark:border-white/10 shadow-md space-y-6">
-                {coverImage && (
-                  <div className="rounded-2xl overflow-hidden max-h-80 w-full mb-6 border border-white/60 dark:border-white/10 shadow-sm">
-                    <img
-                      src={coverImage}
-                      alt={title}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
+                {isSafeCoverUrl(coverImage) && (
+                  <CoverImageFrame
+                    src={coverImage}
+                    alt={title || 'Ảnh bìa bài viết'}
+                    priority={true}
+                    className="rounded-2xl mb-6 border border-white/60 dark:border-white/10 shadow-sm"
+                  />
                 )}
 
                 <div className="space-y-3 border-b pb-6 border-slate-200 dark:border-slate-800">
@@ -1219,14 +1288,13 @@ Nội dung thông thường với **in đậm**, *in nghiêng*, `code` và liên
                 }}
                 className="w-full px-3.5 py-2 rounded-xl bg-[#FAF3E3]/60 dark:bg-[#0B1528] border border-[#F5E6C8] dark:border-slate-800 text-slate-900 dark:text-slate-100 placeholder-slate-400 text-xs focus:outline-none focus:border-[#1E5AA8]"
               />
-              {coverImage && (
-                <div className="relative mt-2 rounded-xl overflow-hidden h-28 border border-[#F5E6C8] dark:border-slate-800">
-                  <img
-                    src={coverImage}
-                    alt="Cover preview"
-                    className="w-full h-full object-cover"
-                    onError={() => {}}
-                  />
+              {coverImage.trim() && (
+                <CoverImageFrame
+                  src={coverImage}
+                  alt="Cover preview"
+                  compact={true}
+                  className="mt-2 rounded-xl border border-[#F5E6C8] dark:border-slate-800"
+                >
                   <button
                     type="button"
                     onClick={() => {
@@ -1235,10 +1303,11 @@ Nội dung thông thường với **in đậm**, *in nghiêng*, `code` và liên
                     }}
                     className="absolute top-1.5 right-1.5 p-1 rounded-lg bg-black/60 text-white hover:bg-black/80 transition-colors"
                     title="Xóa ảnh bìa"
+                    aria-label="Xóa ảnh bìa"
                   >
                     <X className="w-3.5 h-3.5" />
                   </button>
-                </div>
+                </CoverImageFrame>
               )}
             </div>
 
